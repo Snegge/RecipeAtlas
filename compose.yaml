@@ -1,0 +1,29 @@
+services:
+  api:
+    build: .
+    restart: unless-stopped
+    environment:
+      Owner__PasswordHash: ${RECIPE_ATLAS_PASSWORD_HASH:?Set RECIPE_ATLAS_PASSWORD_HASH in .env}
+    volumes:
+      - recipe_data:/app/data
+    # No public API port. All external traffic goes through Caddy and HTTPS.
+
+  caddy:
+    image: caddy:2
+    restart: unless-stopped
+    depends_on:
+      - api
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      RECIPE_ATLAS_DOMAIN: ${RECIPE_ATLAS_DOMAIN:?Set RECIPE_ATLAS_DOMAIN in .env}
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+
+volumes:
+  recipe_data:
+  caddy_data:
+  caddy_config:

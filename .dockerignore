@@ -1,0 +1,10 @@
+**/bin
+**/obj
+**/data
+**/*.db*
+.git
+.env
+.env.*
+backups
+cookies.txt
+login.json
