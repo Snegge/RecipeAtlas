@@ -20,7 +20,7 @@ public sealed class Ingredient
     public Guid RecipeId { get; set; }
     public int Position { get; set; }
     public string Name { get; set; } = "";
-    public decimal? Quantity { get; set; }
+    public string Quantity { get; set; } = "";
     public string Unit { get; set; } = "g";
     public string? Note { get; set; }
 }
@@ -53,7 +53,7 @@ public static class Units
         new("tsp", "metric teaspoon", 5), new("tbsp", "metric tablespoon", 15),
         new("piece", "piece"), new("pinch", "pinch"), new("toTaste", "to taste"),
         new("pack", "package"),
-        new("can", "can"),
+        new("can", "can"), new("jar", "jar"),
     ];
     public static readonly HashSet<string> Codes = All.Select(x => x.Code).ToHashSet();
 }

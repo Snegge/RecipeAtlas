@@ -1,0 +1,666 @@
+{
+  "quantities": [
+    {
+      "input": "2",
+      "expected": "2"
+    },
+    {
+      "input": "0.5",
+      "expected": "0.5"
+    },
+    {
+      "input": "0,5",
+      "expected": "0.5"
+    },
+    {
+      "input": ".5",
+      "expected": "0.5"
+    },
+    {
+      "input": ",5",
+      "expected": "0.5"
+    },
+    {
+      "input": "0002.5000",
+      "expected": "2.5"
+    },
+    {
+      "input": "1/2",
+      "expected": "1/2"
+    },
+    {
+      "input": "1 1/2",
+      "expected": "1 1/2"
+    },
+    {
+      "input": "1½",
+      "expected": "1 1/2"
+    },
+    {
+      "input": "⅓",
+      "expected": "1/3"
+    },
+    {
+      "input": "⅝",
+      "expected": "5/8"
+    },
+    {
+      "input": "⅐",
+      "expected": "1/7"
+    },
+    {
+      "input": "3–4",
+      "expected": "3-4"
+    },
+    {
+      "input": "3—4",
+      "expected": "3-4"
+    },
+    {
+      "input": "3 to 4",
+      "expected": "3-4"
+    },
+    {
+      "input": "3 bis 4",
+      "expected": "3-4"
+    },
+    {
+      "input": "1/2 - 1 1/2",
+      "expected": "1/2-1 1/2"
+    },
+    {
+      "input": "½–¾",
+      "expected": "1/2-3/4"
+    },
+    {
+      "input": "0,5 bis 1,5",
+      "expected": "0.5-1.5"
+    },
+    {
+      "input": "0.001",
+      "expected": "0.001"
+    },
+    {
+      "input": "100000",
+      "expected": "100000"
+    },
+    {
+      "input": "1/3-2/3",
+      "expected": "1/3-2/3"
+    },
+    {
+      "input": "0.123456789",
+      "expected": "0.123456789"
+    },
+    {
+      "input": "",
+      "expected": null
+    },
+    {
+      "input": "abc",
+      "expected": null
+    },
+    {
+      "input": "-2",
+      "expected": null
+    },
+    {
+      "input": "-1/2",
+      "expected": null
+    },
+    {
+      "input": "0",
+      "expected": null
+    },
+    {
+      "input": "1/0",
+      "expected": null
+    },
+    {
+      "input": "1 2/1",
+      "expected": null
+    },
+    {
+      "input": "3-2",
+      "expected": null
+    },
+    {
+      "input": "3 bis 2",
+      "expected": null
+    },
+    {
+      "input": "4-3-2",
+      "expected": null
+    },
+    {
+      "input": "0.0009",
+      "expected": null
+    },
+    {
+      "input": "1/1001",
+      "expected": null
+    },
+    {
+      "input": "100001",
+      "expected": null
+    },
+    {
+      "input": "1e3",
+      "expected": null
+    },
+    {
+      "input": "NaN",
+      "expected": null
+    },
+    {
+      "input": "1,2,3",
+      "expected": null
+    },
+    {
+      "input": "2/3/4",
+      "expected": null
+    },
+    {
+      "input": "1.2.3",
+      "expected": null
+    },
+    {
+      "input": "2 cups",
+      "expected": null
+    },
+    {
+      "input": "+2",
+      "expected": null
+    },
+    {
+      "input": "2                                                                ",
+      "expected": null
+    },
+    {
+      "input": "٣",
+      "expected": null
+    },
+    {
+      "input": "½1",
+      "expected": null
+    },
+    {
+      "input": "1½2",
+      "expected": null
+    }
+  ],
+  "ingredients": [
+    {
+      "input": "200 g Mehl (gesiebt)",
+      "name": "Mehl",
+      "quantity": "200",
+      "unit": "g",
+      "note": "gesiebt",
+      "requiresReview": false
+    },
+    {
+      "input": "1,5 kg potatoes",
+      "name": "potatoes",
+      "quantity": "1.5",
+      "unit": "kg",
+      "note": null,
+      "requiresReview": false
+    },
+    {
+      "input": "1/3 tsp salt",
+      "name": "salt",
+      "quantity": "1/3",
+      "unit": "tsp",
+      "note": null,
+      "requiresReview": true
+    },
+    {
+      "input": "1½ EL Öl",
+      "name": "Öl",
+      "quantity": "1 1/2",
+      "unit": "tbsp",
+      "note": null,
+      "requiresReview": false
+    },
+    {
+      "input": "3-4 Eier",
+      "name": "Eier",
+      "quantity": "3-4",
+      "unit": "piece",
+      "note": null,
+      "requiresReview": false
+    },
+    {
+      "input": "2 Zwiebeln",
+      "name": "Zwiebeln",
+      "quantity": "2",
+      "unit": "piece",
+      "note": null,
+      "requiresReview": false
+    },
+    {
+      "input": "½–¾ cups flour",
+      "name": "flour",
+      "quantity": "118.294-177.441",
+      "unit": "ml",
+      "note": null,
+      "requiresReview": true
+    },
+    {
+      "input": "1-2 lb beef",
+      "name": "beef",
+      "quantity": "453.592-907.185",
+      "unit": "g",
+      "note": null,
+      "requiresReview": false
+    },
+    {
+      "input": "2 lbs beef",
+      "name": "beef",
+      "quantity": "907.185",
+      "unit": "g",
+      "note": null,
+      "requiresReview": false
+    },
+    {
+      "input": "1 pound beef",
+      "name": "beef",
+      "quantity": "453.592",
+      "unit": "g",
+      "note": null,
+      "requiresReview": false
+    },
+    {
+      "input": "2 pounds beef",
+      "name": "beef",
+      "quantity": "907.185",
+      "unit": "g",
+      "note": null,
+      "requiresReview": false
+    },
+    {
+      "input": "2 oz butter",
+      "name": "butter",
+      "quantity": "56.699",
+      "unit": "g",
+      "note": null,
+      "requiresReview": false
+    },
+    {
+      "input": "2 ounce butter",
+      "name": "butter",
+      "quantity": "56.699",
+      "unit": "g",
+      "note": null,
+      "requiresReview": false
+    },
+    {
+      "input": "2 ounces butter",
+      "name": "butter",
+      "quantity": "56.699",
+      "unit": "g",
+      "note": null,
+      "requiresReview": false
+    },
+    {
+      "input": "1 oz butter",
+      "name": "butter",
+      "quantity": "28.35",
+      "unit": "g",
+      "note": null,
+      "requiresReview": false
+    },
+    {
+      "input": "1/2 oz butter",
+      "name": "butter",
+      "quantity": "14.175",
+      "unit": "g",
+      "note": null,
+      "requiresReview": false
+    },
+    {
+      "input": "1 cup milk",
+      "name": "milk",
+      "quantity": "236.588",
+      "unit": "ml",
+      "note": null,
+      "requiresReview": true
+    },
+    {
+      "input": "2 cups milk",
+      "name": "milk",
+      "quantity": "473.176",
+      "unit": "ml",
+      "note": null,
+      "requiresReview": true
+    },
+    {
+      "input": "1 US cup milk",
+      "name": "milk",
+      "quantity": "236.588",
+      "unit": "ml",
+      "note": null,
+      "requiresReview": false
+    },
+    {
+      "input": "1 cup (US) milk",
+      "name": "milk",
+      "quantity": "236.588",
+      "unit": "ml",
+      "note": null,
+      "requiresReview": false
+    },
+    {
+      "input": "1 imperial cup milk",
+      "name": "milk",
+      "quantity": "284.131",
+      "unit": "ml",
+      "note": null,
+      "requiresReview": false
+    },
+    {
+      "input": "1 metric cup milk",
+      "name": "milk",
+      "quantity": "250",
+      "unit": "ml",
+      "note": null,
+      "requiresReview": true
+    },
+    {
+      "input": "1-2 fl oz milk",
+      "name": "milk",
+      "quantity": "29.574-59.147",
+      "unit": "ml",
+      "note": null,
+      "requiresReview": true
+    },
+    {
+      "input": "1 US fluid ounce milk",
+      "name": "milk",
+      "quantity": "29.574",
+      "unit": "ml",
+      "note": null,
+      "requiresReview": false
+    },
+    {
+      "input": "1 imperial fluid ounce milk",
+      "name": "milk",
+      "quantity": "28.413",
+      "unit": "ml",
+      "note": null,
+      "requiresReview": false
+    },
+    {
+      "input": "1 fl. oz. milk",
+      "name": "milk",
+      "quantity": "29.574",
+      "unit": "ml",
+      "note": null,
+      "requiresReview": true
+    },
+    {
+      "input": "1 Pfund Mehl",
+      "name": "Mehl",
+      "quantity": "500",
+      "unit": "g",
+      "note": null,
+      "requiresReview": true
+    },
+    {
+      "input": "1 jar tomatoes",
+      "name": "tomatoes",
+      "quantity": "1",
+      "unit": "jar",
+      "note": null,
+      "requiresReview": false
+    },
+    {
+      "input": "2 Dosen à 175 g Tomaten",
+      "name": "Tomaten",
+      "quantity": "2",
+      "unit": "can",
+      "note": "à 175 g",
+      "requiresReview": false
+    },
+    {
+      "input": "2 cans tomatoes (à 175 g)",
+      "name": "tomatoes",
+      "quantity": "2",
+      "unit": "can",
+      "note": "à 175 g",
+      "requiresReview": false
+    },
+    {
+      "input": "2 cans tomatoes à 175 g",
+      "name": "tomatoes",
+      "quantity": "2",
+      "unit": "can",
+      "note": "à 175 g",
+      "requiresReview": false
+    },
+    {
+      "input": "1 Päckchen Vanillezucker",
+      "name": "Vanillezucker",
+      "quantity": "1",
+      "unit": "pack",
+      "note": null,
+      "requiresReview": false
+    },
+    {
+      "input": "2 Eier, beaten",
+      "name": "Eier",
+      "quantity": "2",
+      "unit": "piece",
+      "note": "beaten",
+      "requiresReview": false
+    },
+    {
+      "input": "1 Prise Salz",
+      "name": "Salz",
+      "quantity": "1",
+      "unit": "pinch",
+      "note": null,
+      "requiresReview": false
+    },
+    {
+      "input": "Pfeffer nach Geschmack",
+      "name": "Pfeffer",
+      "quantity": "",
+      "unit": "toTaste",
+      "note": null,
+      "requiresReview": false
+    },
+    {
+      "input": "to taste salt",
+      "name": "salt",
+      "quantity": "",
+      "unit": "toTaste",
+      "note": null,
+      "requiresReview": false
+    },
+    {
+      "input": "1 Glas Milch",
+      "name": "Milch",
+      "quantity": "1",
+      "unit": null,
+      "note": null,
+      "requiresReview": true
+    },
+    {
+      "input": "2 Gläser Milch",
+      "name": "Milch",
+      "quantity": "2",
+      "unit": null,
+      "note": null,
+      "requiresReview": true
+    },
+    {
+      "input": "1 handful spinach",
+      "name": "spinach",
+      "quantity": "1",
+      "unit": null,
+      "note": null,
+      "requiresReview": true
+    },
+    {
+      "input": "1 pint milk",
+      "name": "milk",
+      "quantity": "1",
+      "unit": null,
+      "note": null,
+      "requiresReview": true
+    },
+    {
+      "input": "1 metric fl oz milk",
+      "name": "milk",
+      "quantity": "30",
+      "unit": "ml",
+      "note": null,
+      "requiresReview": true
+    },
+    {
+      "input": "Fett für das Blech",
+      "name": "Fett für das Blech",
+      "quantity": "",
+      "unit": null,
+      "note": null,
+      "requiresReview": true
+    },
+    {
+      "input": "1/0 g salt",
+      "name": "1/0 g salt",
+      "quantity": "",
+      "unit": null,
+      "note": null,
+      "requiresReview": true
+    },
+    {
+      "input": "-1 g salt",
+      "name": "-1 g salt",
+      "quantity": "",
+      "unit": null,
+      "note": null,
+      "requiresReview": true
+    },
+    {
+      "input": "4-3 eggs",
+      "name": "4-3 eggs",
+      "quantity": "",
+      "unit": null,
+      "note": null,
+      "requiresReview": true
+    },
+    {
+      "input": "0 g salt",
+      "name": "0 g salt",
+      "quantity": "",
+      "unit": null,
+      "note": null,
+      "requiresReview": true
+    },
+    {
+      "input": "0.0001 lb salt",
+      "name": "0.0001 lb salt",
+      "quantity": "",
+      "unit": null,
+      "note": null,
+      "requiresReview": true
+    },
+    {
+      "input": "100000 lb beef",
+      "name": "beef",
+      "quantity": "",
+      "unit": null,
+      "note": null,
+      "requiresReview": true
+    },
+    {
+      "input": "1e3 g flour",
+      "name": "1e3 g flour",
+      "quantity": "",
+      "unit": null,
+      "note": null,
+      "requiresReview": true
+    },
+    {
+      "input": "0.001 mg salt",
+      "name": "salt",
+      "quantity": "",
+      "unit": null,
+      "note": null,
+      "requiresReview": true
+    },
+    {
+      "input": "1 oz fl milk",
+      "name": "milk",
+      "quantity": "29.574",
+      "unit": "ml",
+      "note": null,
+      "requiresReview": true
+    },
+    {
+      "input": "1 UCUM metric cup milk",
+      "name": "milk",
+      "quantity": "240",
+      "unit": "ml",
+      "note": null,
+      "requiresReview": false
+    },
+    {
+      "input": "1 Japanese cup rice",
+      "name": "rice",
+      "quantity": "1",
+      "unit": null,
+      "note": null,
+      "requiresReview": true
+    },
+    {
+      "input": "1 Ei(er)",
+      "name": "Ei(er)",
+      "quantity": "1",
+      "unit": "piece",
+      "note": null,
+      "requiresReview": false
+    },
+    {
+      "input": "2 Gläser à 175 g Tomaten",
+      "name": "Tomaten",
+      "quantity": "2",
+      "unit": null,
+      "note": "à 175 g",
+      "requiresReview": true
+    },
+    {
+      "input": "1 Einmachglas Tomaten",
+      "name": "Tomaten",
+      "quantity": "1",
+      "unit": "jar",
+      "note": null,
+      "requiresReview": false
+    },
+    {
+      "input": "3 − 4 Eier",
+      "name": "3 − 4 Eier",
+      "quantity": "",
+      "unit": null,
+      "note": null,
+      "requiresReview": true
+    },
+    {
+      "input": "½1 g flour",
+      "name": "½1 g flour",
+      "quantity": "",
+      "unit": null,
+      "note": null,
+      "requiresReview": true
+    },
+    {
+      "input": "1½2 g flour",
+      "name": "1½2 g flour",
+      "quantity": "",
+      "unit": null,
+      "note": null,
+      "requiresReview": true
+    }
+  ]
+}

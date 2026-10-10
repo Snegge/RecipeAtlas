@@ -4,11 +4,12 @@ public sealed record RecipeImportRequest(string? Url);
 
 public sealed record ImportedIngredient(
     string Name,
-    decimal? Quantity,
+    string Quantity,
     string? Unit,
     string? Note,
     string OriginalText,
-    bool RequiresReview);
+    bool RequiresReview,
+    string? ReviewReason = null);
 
 public sealed record RecipeImportDraft(
     string Title,

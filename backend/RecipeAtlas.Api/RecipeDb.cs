@@ -26,6 +26,7 @@ public sealed class RecipeDb(DbContextOptions<RecipeDb> options) : DbContext(opt
         model.Entity<Ingredient>().Property(x => x.Name).HasMaxLength(200);
         model.Entity<Ingredient>().Property(x => x.Note).HasMaxLength(300);
         model.Entity<Ingredient>().Property(x => x.Unit).HasMaxLength(16);
+        model.Entity<Ingredient>().Property(x => x.Quantity).HasMaxLength(64).IsRequired();
         model.Entity<RecipeStep>().Property(x => x.Instruction).HasMaxLength(4000);
     }
 }

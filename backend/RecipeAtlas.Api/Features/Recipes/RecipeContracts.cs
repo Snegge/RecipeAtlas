@@ -1,10 +1,10 @@
 namespace RecipeAtlas.Api;
 
-public sealed record IngredientInput(string? Name, decimal? Quantity, string? Unit, string? Note);
+public sealed record IngredientInput(string? Name, string? Quantity, string? Unit, string? Note);
 public sealed record RecipeInput(
     string? Title, string? Description, string? SourceUrl, int Servings,
     List<IngredientInput?>? Ingredients, List<string?>? Steps);
-public sealed record IngredientResponse(string Name, decimal? Quantity, string Unit, string? Note);
+public sealed record IngredientResponse(string Name, string Quantity, string Unit, string? Note);
 public sealed record RecipeResponse(
     Guid Id, string Title, string? Description, string? SourceUrl, int Servings,
     IReadOnlyList<IngredientResponse> Ingredients, IReadOnlyList<string> Steps,
@@ -30,7 +30,7 @@ public static class RecipeMapping
         recipe.Ingredients.Clear();
         recipe.Ingredients.AddRange(input.Ingredients!.Select((x, index) => new Ingredient
         {
-            Name = x!.Name!.Trim(), Quantity = x.Quantity, Unit = x.Unit!,
+            Name = x!.Name!.Trim(), Quantity = x.Unit == "toTaste" ? "" : QuantityText.Parse(x.Quantity!)!.Canonical, Unit = x.Unit!,
             Note = Clean(x.Note), Position = index
         }));
         recipe.Steps.Clear();
@@ -76,12 +76,11 @@ public static class RecipeValidation
                     Add(field + ".unit", "Choose a unit from /api/units.");
                 if (item.Unit == "toTaste")
                 {
-                    if (item.Quantity is not null)
-                        Add(field + ".quantity", "Use null for a toTaste quantity.");
+                    if (item.Quantity != "")
+                        Add(field + ".quantity", "Use an empty string for a toTaste quantity.");
                 }
-                else if (item.Quantity is null or <= 0 or > 100000 ||
-                         decimal.Round(item.Quantity.Value, 3) != item.Quantity.Value)
-                    Add(field + ".quantity", "Use a positive quantity up to 100000 with at most 3 decimal places.");
+                else if (QuantityText.Parse(item.Quantity) is null)
+                    Add(field + ".quantity", "Use a quantity or ascending range between 0.001 and 100000 (e.g. 2, 1/2, 3-4), up to 64 characters.");
                 if (item.Note?.Length > 300)
                     Add(field + ".note", "Use at most 300 characters.");
             }

@@ -95,13 +95,33 @@ with tempfile.TemporaryDirectory(prefix="recipeatlas-test-") as temporary:
         invalid["ingredients"] = [None]
         request("POST", "/api/recipes", 400, invalid)
         invalid = copy.deepcopy(recipe)
-        invalid["ingredients"][0]["quantity"] = -1
+        invalid["ingredients"][0]["quantity"] = "-1"
         request("POST", "/api/recipes", 400, invalid)
         invalid = copy.deepcopy(recipe)
         invalid["sourceUrl"] = "javascript:alert(1)"
         request("POST", "/api/recipes", 400, invalid)
         created = request("POST", "/api/recipes", 201, recipe)
         path = "/api/recipes/" + created["id"]
+        assert created["ingredients"][0]["quantity"] == "200"
+        assert created["ingredients"][-1]["quantity"] == ""
+        for quantity, expected in [("0,5", "0.5"), ("1/3", "1/3"), ("1 1/2", "1 1/2"),
+                                   ("3–4", "3-4"), ("1/2 bis 1 1/2", "1/2-1 1/2")]:
+            payload = copy.deepcopy(recipe)
+            payload["ingredients"][0]["quantity"] = quantity
+            result = request("PUT", path, 200, payload)
+            assert result["ingredients"][0]["quantity"] == expected
+            assert request("GET", path, 200)["ingredients"][0]["quantity"] == expected
+        for quantity in [None, "", "1/0", "-1", "4-3", "0", "100001", "0.0001", "1" * 65, 2]:
+            invalid = copy.deepcopy(recipe)
+            invalid["ingredients"][0]["quantity"] = quantity
+            request("PUT", path, 400, invalid)
+        invalid = copy.deepcopy(recipe)
+        invalid["ingredients"][-1]["quantity"] = None
+        request("PUT", path, 400, invalid)
+        invalid = copy.deepcopy(recipe)
+        invalid["ingredients"][0]["unit"] = "lb"
+        request("PUT", path, 400, invalid)
+        request("PUT", path, 200, recipe)
         listing = request("GET", "/api/recipes?search=PASTA&pageSize=5", 200)
         assert listing["total"] == 1 and "ingredients" not in listing["items"][0]
         assert request("GET", "/api/recipes?search=olive", 200)["total"] == 1
@@ -109,8 +129,10 @@ with tempfile.TemporaryDirectory(prefix="recipeatlas-test-") as temporary:
         request("GET", "/api/recipes?pageSize=101", 400)
         recipe["title"] = "Updated pasta"
         recipe["ingredients"] = recipe["ingredients"][:1]
+        recipe["ingredients"][0]["quantity"] = "3—4"
         recipe["steps"] = ["Replacement step"]
         updated = request("PUT", path, 200, recipe)
+        assert updated["ingredients"][0]["quantity"] == "3-4"
         assert len(updated["ingredients"]) == 1 and updated["steps"] == recipe["steps"]
         request("PUT", path + "/image", 415, b"<svg></svg>")
         request("PUT", path + "/image", 413, b"x" * (5 * 1024 * 1024 + 1))
@@ -125,7 +147,9 @@ with tempfile.TemporaryDirectory(prefix="recipeatlas-test-") as temporary:
         process.terminate()
         process.wait(timeout=10)
         process = start()
-        assert request("GET", path, 200)["title"] == "Updated pasta"
+        persisted = request("GET", path, 200)
+        assert persisted["title"] == "Updated pasta"
+        assert persisted["ingredients"][0]["quantity"] == "3-4"
         assert request("GET", path + "/image", 200) == png
         request("DELETE", path + "/image", 204)
         request("GET", path + "/image", 404)

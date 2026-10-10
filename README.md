@@ -196,17 +196,17 @@ Title, servings, at least one ingredient, and at least one step are required. De
 
 | Unit code | Meaning | Quantity |
 |---|---|---|
-| g | Grams | Positive decimal |
-| kg | Kilograms | Positive decimal |
-| ml | Milliliters | Positive decimal |
-| l | Liters | Positive decimal |
-| tsp | Metric teaspoon, 5 ml | Positive decimal |
-| tbsp | Metric tablespoon, 15 ml | Positive decimal |
-| piece | Piece, such as an egg or garlic clove | Positive decimal |
-| pinch | Pinch, approximate | Positive decimal |
-| toTaste | To taste | null |
+| g | Grams | Positive quantity string |
+| kg | Kilograms | Positive quantity string |
+| ml | Milliliters | Positive quantity string |
+| l | Liters | Positive quantity string |
+| tsp | Metric teaspoon, 5 ml | Positive quantity string |
+| tbsp | Metric tablespoon, 15 ml | Positive quantity string |
+| piece | Piece, such as an egg or garlic clove | Positive quantity string |
+| pinch | Pinch, approximate | Positive quantity string |
+| toTaste | To taste | Empty string |
 
-Quantities support up to 3 decimal places. Use `0.5`, not a string such as `"1/2"`. The frontend can display localized fractions or decimal separators. The API does not convert mass to volume or infer ingredient density. For canned ingredients use grams or milliliters and put the packaging detail in `note`. Spoon measurements differ by region, so this API explicitly uses metric spoons and omits cups.
+Quantities are strings, such as `"0.5"`, `"1/2"`, `"1 1/2"`, or `"3-4"`. Decimal commas and range separators are normalized on save. `toTaste` uses `""`. The API does not convert mass to volume or infer ingredient density. For canned ingredients use grams or milliliters and put the packaging detail in `note`. Spoon measurements differ by region, so this API explicitly uses metric spoons. Website extraction converts supported cup/fluid-ounce definitions to ml and marks unspecified definitions for review.
 
 Validation returns 400 with an `errors` dictionary. Other relevant statuses are 401 (login required), 403 (missing write header), 404 (missing recipe/image), 413 (image too large), 415 (unsupported image signature), and 429 (login limit). Ten login attempts are allowed per 15-minute fixed window for the entire single-owner app, including successful attempts. This counter resets on process restart.
 
@@ -396,3 +396,7 @@ This first version uses last-write-wins for edits. Editing the same recipe simul
 - EF Core migrations: https://learn.microsoft.com/en-us/ef/core/managing-schemas/migrations/applying
 - Arch .NET SDK package: https://archlinux.org/packages/extra/x86_64/dotnet-sdk-10.0/
 - Caddy HTTPS: https://caddyserver.com/docs/quick-starts/https
+
+## String quantities upgrade
+
+See [quantity contracts, conversion assumptions, migration and coordinated deployment](docs/quantity-strings.md). The initial migration remains intact; `StringIngredientQuantities` upgrades existing values without resetting recipe data.
