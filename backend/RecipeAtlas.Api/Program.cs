@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using RecipeAtlas.Api;
+using RecipeAtlas.Api.Features.RecipeImport;
 
 if (args.Contains("--hash-password"))
 {
@@ -69,10 +70,24 @@ builder.Services.AddRateLimiter(options =>
         limiter.Window = TimeSpan.FromMinutes(15);
         limiter.QueueLimit = 0;
     });
+    options.AddFixedWindowLimiter("recipe-import", limiter =>
+    {
+        limiter.PermitLimit = 10;
+        limiter.Window = TimeSpan.FromMinutes(1);
+        limiter.QueueLimit = 0;
+    });
 });
 
+builder.Services.AddRecipeImport();
+
 var app = builder.Build();
-app.UseExceptionHandler();
+app.UseExceptionHandler(new ExceptionHandlerOptions
+{
+    // Minimal API binding can throw in Development. Malformed/string-contract
+    // request bodies are client errors, including legacy numeric quantities.
+    StatusCodeSelector = exception => exception is BadHttpRequestException badRequest
+        ? badRequest.StatusCode : StatusCodes.Status500InternalServerError
+});
 app.UseStatusCodePages();
 
 // Browser writes must carry this non-safelisted header. Cross-origin websites cannot
@@ -102,6 +117,9 @@ await using (var scope = app.Services.CreateAsyncScope())
     await scope.ServiceProvider.GetRequiredService<RecipeDb>().Database.MigrateAsync();
 
 app.MapGet("/health", () => Results.Ok(new { status = "ok" }));
+
 OwnerAuth.MapEndpoints(app);
 RecipeEndpoints.Map(app);
+RecipeImportEndpoints.Map(app);
+
 app.Run();
