@@ -400,3 +400,8 @@ This first version uses last-write-wins for edits. Editing the same recipe simul
 ## String quantities upgrade
 
 See [quantity contracts, conversion assumptions, migration and coordinated deployment](docs/quantity-strings.md). The initial migration remains intact; `StringIngredientQuantities` upgrades existing values without resetting recipe data.
+
+## Social description and pasted-text import
+
+See [setup, local commands, platform restrictions and verification](docs/social-description-import.md).
+This prototype uses metadata-only yt-dlp and backend Gemini extraction; website imports work without an AI key.

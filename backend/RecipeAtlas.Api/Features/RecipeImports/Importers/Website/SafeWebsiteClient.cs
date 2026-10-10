@@ -199,11 +199,31 @@ public sealed class SafeWebsiteClient
             HttpStatusCode.PermanentRedirect;
     }
 
-    private static bool IsPublicIPv4(IPAddress address)
+    public static bool IsPublicIPv4(IPAddress address)
     {
         return address.AddressFamily == AddressFamily.InterNetwork &&
                !BlockedNetworks.Any(network => network.Contains(address));
     }
+
+    public static async Task ValidatePublicHostAsync(Uri url, CancellationToken cancellationToken)
+    {
+        ValidateUrl(url);
+        var addresses = await Dns.GetHostAddressesAsync(url.IdnHost, cancellationToken);
+        if (!addresses.Any(IsPublicIPv4) || addresses.Any(address => !IsPublicAddress(address)))
+            throw new RecipeImportException("The source host must resolve to public network addresses.",
+                400, "unsafe_source");
+    }
+
+    // The external retriever can use IPv6, unlike our IPv4-pinned HTTP handler.
+    public static bool IsPublicAddress(IPAddress address) => address.AddressFamily switch
+    {
+        AddressFamily.InterNetwork => IsPublicIPv4(address),
+        AddressFamily.InterNetworkV6 => !address.IsIPv4MappedToIPv6 &&
+            IPNetwork.Parse("2000::/3").Contains(address) &&
+            !IPNetwork.Parse("2001:db8::/32").Contains(address) &&
+            !IPNetwork.Parse("2001::/32").Contains(address),
+        _ => false
+    };
 
     private static async ValueTask<Stream> ConnectAsync(
         SocketsHttpConnectionContext context,
