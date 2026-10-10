@@ -81,7 +81,13 @@ builder.Services.AddRateLimiter(options =>
 builder.Services.AddRecipeImport();
 
 var app = builder.Build();
-app.UseExceptionHandler();
+app.UseExceptionHandler(new ExceptionHandlerOptions
+{
+    // Minimal API binding can throw in Development. Malformed/string-contract
+    // request bodies are client errors, including legacy numeric quantities.
+    StatusCodeSelector = exception => exception is BadHttpRequestException badRequest
+        ? badRequest.StatusCode : StatusCodes.Status500InternalServerError
+});
 app.UseStatusCodePages();
 
 // Browser writes must carry this non-safelisted header. Cross-origin websites cannot

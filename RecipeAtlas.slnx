@@ -2,4 +2,7 @@
   <Folder Name="/backend/">
     <Project Path="backend/RecipeAtlas.Api/RecipeAtlas.Api.csproj" />
   </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/RecipeAtlas.Tests/RecipeAtlas.Tests.csproj" />
+  </Folder>
 </Solution>
