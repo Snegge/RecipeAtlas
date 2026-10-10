@@ -13,3 +13,4 @@ backups/
 .vs/
 .idea/
 __pycache__/
+.tools/

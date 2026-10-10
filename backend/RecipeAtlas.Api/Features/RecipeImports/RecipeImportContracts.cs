@@ -1,6 +1,6 @@
 namespace RecipeAtlas.Api.Features.RecipeImport;
 
-public sealed record RecipeImportRequest(string? Url);
+public sealed record RecipeImportRequest(string? Url, string? Text = null);
 
 public sealed record ImportedIngredient(
     string Name,
@@ -29,10 +29,15 @@ public sealed record RecipeImportResult(
 public sealed class RecipeImportException : Exception
 {
     public int StatusCode { get; }
+    public string Code { get; }
+    public bool CanPasteText { get; }
 
-    public RecipeImportException(string message, int statusCode = 422)
+    public RecipeImportException(string message, int statusCode = 422,
+        string code = "import_failed", bool canPasteText = false)
         : base(message)
     {
         StatusCode = statusCode;
+        Code = code;
+        CanPasteText = canPasteText;
     }
 }

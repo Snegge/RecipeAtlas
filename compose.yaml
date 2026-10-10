@@ -4,6 +4,8 @@ services:
     restart: unless-stopped
     environment:
       Owner__PasswordHash: ${RECIPE_ATLAS_PASSWORD_HASH:?Set RECIPE_ATLAS_PASSWORD_HASH in .env}
+      RecipeText__ApiKey: ${RecipeText__ApiKey:-}
+      RecipeText__Model: ${RecipeText__Model:-gemini-flash-latest}
     volumes:
       - recipe_data:/app/data
     # No public API port. All external traffic goes through Caddy and HTTPS.

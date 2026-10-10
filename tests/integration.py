@@ -57,6 +57,8 @@ with tempfile.TemporaryDirectory(prefix="recipeatlas-test-") as temporary:
     environment = dict(os.environ, ASPNETCORE_ENVIRONMENT="Development",
                        ASPNETCORE_URLS=base, DataDirectory=temporary,
                        Owner__PasswordHash=hashed)
+    # Deterministic suite must never use a configured paid model provider.
+    environment["RecipeText__ApiKey"] = ""
     log_path = Path(temporary) / "server.log"
     log = log_path.open("w+")
     process = None
@@ -85,6 +87,12 @@ with tempfile.TemporaryDirectory(prefix="recipeatlas-test-") as temporary:
         request("POST", "/api/auth/login", 401, {"password": "incorrect"})
         request("POST", "/api/auth/login", 204, {"password": password})
         request("GET", "/api/auth/me", 200)
+        request("POST", "/api/recipes/import", 401, {"text": "2 eggs"}, authenticated=False)
+        request("POST", "/api/recipes/import", 403, {"text": "2 eggs"}, csrf=False)
+        request("POST", "/api/recipes/import", 400, {"text": " "})
+        request("POST", "/api/recipes/import", 400, {"url": "http://youtube.com/watch?v=BaW_jenozKc"})
+        missing_model = request("POST", "/api/recipes/import", 503, {"text": "Eggs\n2 eggs\nCook."})
+        assert missing_model["code"] == "ai_not_configured"
         units = request("GET", "/api/units", 200)
         assert {unit["code"] for unit in units} >= {"g", "tbsp", "toTaste"}
         recipe = json.loads((ROOT / "sample-recipe.json").read_text())

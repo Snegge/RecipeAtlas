@@ -6,6 +6,25 @@ using Microsoft.EntityFrameworkCore.Migrations;
 using RecipeAtlas.Api;
 using RecipeAtlas.Api.Features.RecipeImport;
 
+if (args.FirstOrDefault() == "--process-fixture")
+{
+    switch (args[1])
+    {
+        case "argument": Console.Write(args[2]); break;
+        case "output": Console.Write(new string('x', 2 * 1024 * 1024 + 1)); break;
+        case "error": Console.Error.Write(new string('x', 64 * 1024 + 1)); break;
+        case "wait":
+            File.WriteAllText(args[2], Environment.ProcessId.ToString());
+            await Task.Delay(Timeout.InfiniteTimeSpan); break;
+    }
+    return;
+}
+if (args.FirstOrDefault() == "--live-social")
+{
+    await SocialImportTests.LiveAsync(args.Skip(1).ToArray());
+    return;
+}
+
 var count = 0;
 void Check(bool ok, string message) { if (!ok) throw new Exception(message); count++; }
 using var cases = JsonDocument.Parse(File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "quantity-cases.json")));
@@ -114,7 +133,8 @@ try
     finally { CultureInfo.CurrentCulture = oldCulture; }
 }
 finally { Microsoft.Data.Sqlite.SqliteConnection.ClearAllPools(); Directory.Delete(directory, true); }
-Console.WriteLine($"Passed {count} parser, extractor, validation and SQLite migration checks.");
+await SocialImportTests.RunAsync(Check);
+Console.WriteLine($"Passed {count} quantity, website/social/text import, process, validation and SQLite migration checks.");
 
 static async Task<List<string?[]>> ReadRows(RecipeDb db)
 {

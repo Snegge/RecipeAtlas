@@ -18,9 +18,9 @@ public static class RecipeImportEndpoints
     {
         try
         {
-            var result = await service.ImportAsync(
-                request.Url,
-                cancellationToken);
+            var result = request.Text is not null
+                ? await service.ImportTextAsync(request.Text, request.Url, cancellationToken)
+                : await service.ImportAsync(request.Url, cancellationToken);
 
             return Results.Ok(result);
         }
@@ -28,7 +28,8 @@ public static class RecipeImportEndpoints
         {
             return Results.Problem(
                 statusCode: exception.StatusCode,
-                title: exception.Message);
+                title: exception.Message,
+                extensions: new Dictionary<string, object?> { ["code"] = exception.Code, ["canPasteText"] = exception.CanPasteText });
         }
         catch (HttpRequestException)
         {
