@@ -298,6 +298,21 @@ Use `accept="image/jpeg,image/png,image/webp"` on the file input. HEIC is not ac
 
 Create the recipe first and upload its optional image second. If upload fails, keep the saved recipe ID and retry the image request. Do not create another recipe on retry. Disable Save while a request is running to avoid double submission. Render titles, descriptions, and steps as text, not injected HTML.
 
+## Local paths and cloud-only activation
+
+Run commands from this backend checkout. `/workspace/.setup/env.sh` belongs only to the Codex cloud environment; omit it on your own computer when .NET and Python are already installed.
+
+Cross-repository commands need the actual frontend root (the directory containing `package.json`). `../RecipeAtlasFrontend` works only for sibling checkouts. For any other layout, replace it with the quoted absolute path to your frontend:
+
+```sh
+python3 tests/check_shared_contracts.py "/absolute/path/to/RecipeAtlasFrontend"
+python3 scripts/sync_frontend_contracts.py "/absolute/path/to/RecipeAtlasFrontend" --check
+```
+
+These checks do not modify files. If a contract file is missing in a valid checkout, pull the matching `main` versions of both repositories first. Do not remove `--check` just to work around a path error.
+
+With EF `migrations list --no-connect`, the message that applied/pending status cannot be determined is expected: the command intentionally does not connect to a database. Use the separate `has-pending-model-changes` check for model consistency.
+
 ## 9. Run the integration checks
 
 Requires Python 3, with no additional Python packages:

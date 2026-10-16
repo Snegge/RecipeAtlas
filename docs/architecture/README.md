@@ -151,6 +151,12 @@ Frontend-CI benötigt keinen Zugriff auf das private Backend. Sie prüft ihren m
 
 ## Verifikation und CI
 
+Die Beispiele werden aus dem jeweiligen Repository-Hauptverzeichnis ausgeführt. Auf dem eigenen Rechner wird **kein** `/workspace/.setup/env.sh` benötigt: diese Datei ist ausschließlich eine Bash-Aktivierung für die Codex-Cloud. Wenn `dotnet --version` und `python3 --version` lokal funktionieren, entfällt dieser Schritt vollständig; insbesondere sollte die Cloud-Datei nicht in Fish gesourct werden.
+
+`../RecipeAtlasFrontend` setzt zwei direkt benachbarte Checkouts voraus. Bei getrennten oder verschachtelten Checkout-Verzeichnissen muss in beiden Cross-Repository-Befehlen der tatsächliche Frontend-Pfad eingesetzt werden, beispielsweise `"/home/name/projects/RecipeAtlasFrontend"`. Gemeint ist immer das Verzeichnis mit `package.json`, nicht dessen Elternverzeichnis. Die beiden Cross-Repository-Prüfungen benötigen zusätzlich zum Backend einen aktuellen Frontend-Checkout; sie sind keine Voraussetzung dafür, dass die eigenständigen Backend-Tests laufen.
+
+Die EF-Ausgabe „Pending status not shown / Unable to determine which migrations have been applied“ ist bei `migrations list --no-connect` erwartbar: es wird bewusst keine Datenbank geöffnet. Die beiden ausgegebenen Migration-IDs belegen die Discovery. `has-pending-model-changes` prüft separat das Modell gegen den Snapshot. Für diese Verifikation ist kein `database update` an einer Benutzerdatenbank erforderlich.
+
 Benötigt werden .NET SDK 10.0.401, der bestehende lokale EF-Tool-Pin 10.0.12, Python 3 und Node 24.19.0. Andere unterstützte Node-Versionen stehen in `engines`. Framework-/Provider-Upgrades sind nicht Teil des Refactorings; nur die passende OpenAPI-Entwicklungsabhängigkeit wurde ergänzt. NuGet-Lockfiles und `npm ci` sichern die Auflösung.
 
 ```sh
@@ -160,6 +166,7 @@ dotnet tool restore
 dotnet build --no-restore
 dotnet run --no-build --project tests/Recipoke.Tests
 python3 tests/integration.py
+python3 tests/test_contract_paths.py
 dotnet ef migrations list --no-connect --no-build --project backend/RecipeAtlas.Api
 dotnet ef migrations has-pending-model-changes --no-build --project backend/RecipeAtlas.Api
 python3 scripts/export_openapi.py --check

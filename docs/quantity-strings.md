@@ -33,13 +33,13 @@ The authoritative [UCUM 2.2 definitions](https://github.com/ucum-org/ucum/blob/e
 
 Stop the running API and back up the entire data directory, including cookie keys and SQLite journal/WAL files. Do not delete the database or initial migration. If `DataDirectory` was overridden, use that directory instead of the default path below.
 
-From the cloud shell, activate its retained SDK/cache environment:
+Only inside the Codex cloud environment, activate its retained SDK/cache environment in Bash. On your own computer, omit this step and use your installed .NET SDK:
 
 ```sh
 source /workspace/.setup/env.sh
 ```
 
-From `/workspace/RecipeAtlas`:
+From your backend checkout root (`/workspace/RecipeAtlas` only in Codex cloud). The absolute database connection below is a cloud example; on your own computer substitute the absolute path to your existing database:
 
 ```sh
 dotnet restore
@@ -52,7 +52,7 @@ dotnet run --no-build --project backend/RecipeAtlas.Api/Recipoke.Api.csproj --la
 
 Keep the existing `Owner:PasswordHash` user secret or `Owner__PasswordHash` environment binding. It is not changed by this migration. EF's design-time factory points at `design-time.db`, so the explicit connection above matters. API startup also applies pending migrations to its configured database automatically.
 
-From `/workspace/RecipeAtlasFrontend`, in another activated shell:
+From your frontend checkout root, in another terminal:
 
 ```sh
 npm ci
@@ -65,7 +65,9 @@ Downgrade is deliberately refused: new fractions/ranges cannot be represented by
 
 ## Tests
 
-From `/workspace/RecipeAtlas`:
+The example `../RecipeAtlasFrontend` assumes sibling checkouts. Otherwise pass the quoted absolute frontend directory containing `package.json`.
+
+From your backend checkout root (`/workspace/RecipeAtlas` only in Codex cloud):
 
 ```sh
 dotnet build
@@ -77,7 +79,7 @@ dotnet ef migrations has-pending-model-changes --project backend/RecipeAtlas.Api
 
 The C# console regression runner has no additional test-package dependencies. It exercises quantity/ingredient cases, the actual JSON-LD extractor (including PropertyValue), normal validation and EF migration of an old SQLite database under German culture. The Python integration suite starts isolated API instances and checks string/range save/reload, validation, auth, images and persistence after restart. The cross-repository check ensures the unit definition and test-case copies agree; update them in both repositories together.
 
-From `/workspace/RecipeAtlasFrontend`:
+From your frontend checkout root:
 
 ```sh
 npm test
