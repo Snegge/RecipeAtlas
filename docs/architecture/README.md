@@ -2,13 +2,15 @@
 
 ## Ziel und Geltungsbereich
 
-Recipoke bleibt eine private Rezeptanwendung für einen Eigentümer: ein ASP.NET-Core-Prozess, eine SQLite-Datenbank und ein Angular-Frontend. Dieses Refactoring ändert Verantwortlichkeiten und Abhängigkeiten, nicht den Produktumfang. Es implementiert weder Mehrbenutzerbetrieb noch Offline-Synchronisation oder neue Importquellen.
+Recipoke ist eine einladungsbasierte Rezeptanwendung mit individuellen Konten und geteilten Cookbooks: ein ASP.NET-Core-Prozess, eine SQLite-Datenbank und ein Angular-Frontend. Owner, Editor und Viewer begrenzen den Zugriff pro Cookbook. Globale Account-Administration gewährt keinen automatischen Inhaltszugriff. Offline-Synchronisation, Shopping Lists und Cooking Sessions sind weiterhin nicht implementiert.
+
+Der vorhandene Architekturhybrid bleibt bestehen. [Account-Runbook](../accounts-and-cookbooks.md) und ADR 009–012 dokumentieren die neue Produktanforderung; ADR 001–008 beschreiben die frühere Refactoring-Basis, soweit nicht ausdrücklich ersetzt.
 
 Die Architektur ist ein bewusster **Hybrid aus featureorientiertem Monolith und unabhängiger Domain-Assembly**. Sie ist keine strikte Clean Architecture: ausgewählte Application-Operationen verwenden EF Core direkt. Zusätzliche Application-/Infrastructure-Projekte, generische Repositories und eine weitere Unit-of-Work-Abstraktion würden hier die vorhandenen Verantwortlichkeiten überwiegend verdoppeln.
 
 Die ADRs in [adr/](adr/) dokumentieren Kontext, Alternativen, Konsequenzen und überprüfbare Grenzen. Die technische Form ist eine Entscheidung für Recipoke, keine Vorgabe eines Studienmoduls.
 
-## Ausgangspunkt und überprüfte Ergebnisse
+## Historischer Refactoring-Ausgangspunkt
 
 | Repository | Ausgangscommit auf `main` | Ausgangszustand |
 |---|---|---|
@@ -19,6 +21,12 @@ Remote-Referenzen wurden vor der Bearbeitung geladen. Es war kein Feature-Merge 
 
 Nach dem Refactoring: 595 Prüfungen im expliziten Backend-Runner, 63 HTTP-Prüfungen, 137 Angular-Tests. Ein zusätzlicher Upgrade-Smoke mit einer aus dem archivierten Ausgangscommit publizierten API prüft vorhandene Cookies, Schlüssel, Rezept-/Bilddaten und identische Migrationshistorie. Dazu kommen generierter OpenAPI-Vergleich, lokale Cross-Repository-Prüfung und der Frontend-Vertragschecker. Die HTTP-Erweiterung prüft insbesondere, dass weiterhin die Bildsignatur und nicht ein behaupteter MIME-Typ entscheidet. Browser-Layouts wurden nicht visuell neu vermessen; Templates und Styles bleiben unverändert. Live-Scraping, bezahlte Modellaufrufe und öffentliche TLS-Bereitstellung sind nicht Bestandteil dieser Aussage.
 
+## Account-/Cookbook-Erweiterung: Baseline und Nachweise
+
+Die bereits vorhandenen Feature-Branches `feature/accounts-and-cookbooks` wurden ohne Merge/Rebase ausgecheckt. Saubere Ausgangscommits: Backend `3dfedcf7ce87cffdbae127346be91ce429496f85`, Frontend `add4bc4a3ff57cf34d95b42b8e0298670e576119`. Beide enthielten Rename, Imports und abgeschlossene Refactoring-Funktionen. `main` wird durch diese Aufgabe nicht verändert. Baseline: 595 Backend-, 63 HTTP- und 137 Frontend-Prüfungen sowie beide Builds erfolgreich.
+
+Aktuelle Erweiterung: 621 Console-Prüfungen, 63 bestehende und 153 Account-/Cookbook-HTTP-Prüfungen plus Race-/Hash-Speicher-Assertions, 166 Frontend-Tests und 146 Transport-Vertragsprüfungen. Der optionale echte Alt-Binär-Upgrade-Test prüft Daten-/Schlüsselbestand, geschlossene Setup-Phase, abgewiesene Owner-Cookies, Recovery und Production-Cookieattribute. CI führt die normalen Suiten mit synthetischem SQLite aus. Zusätzlich bestanden 21 automatisierte Prüfungen in echtem Chromium 154 bei 320/1280px: Invitation, Profilanlage, Sharing, Rename, Rollen, widerrufener Editor-Save mit erhaltenen Eingaben, Discard-Dialog, Logout, Deaktivierung/Reaktivierung, Passwortwechsel, Invite-Revoke und Cookbook-Erstellung. Gemessen wurde auch horizontaler Overflow; dies ist keine vollständige visuelle Begutachtung. Ein gehosteter GitHub-Lauf, Container-/TLS-Betrieb und Live-Provider sind separate Nachweise.
+
 ## Tatsächliche Struktur
 
 ```text
@@ -26,12 +34,22 @@ backend/
   Recipoke.Domain/
     Recipes/                 # Recipe, Ingredient, RecipeStep, RecipeImage
     Quantities/              # Ausdrucksparser, Rational, Konversion, Einheitenpolitik
+    Cookbooks/               # Cookbook, Membership, Rollen-/Fähigkeitsregeln
+    Accounts/                # reine Invitation-Zustandsregel
   RecipeAtlas.Api/            # absichtlich stabiler Content Root; Recipoke.Api.csproj
     Program.cs               # sichtbarer Composition Root und Startup-Migration
     Features/
       Authentication/
         Api/                 # HTTP-Cookie-Endpunkte
-        Infrastructure/      # bestehendes Passwort-Hashing und Konfigurationsprüfung
+        Application/         # Login, Passwortwechsel, Active-Checks, CurrentUser/Session-Ports
+        Infrastructure/      # Identity-Sitzungen, HttpCurrentUser
+      Accounts/
+        Api/                 # Admin-/Invite-Endpunkte und geschlossene Setup-Phase
+        Application/         # Kontostatus, atomare Einladungen und Admin-Setup
+        AdministratorCommands.cs # verdeckte serverseitige Eingabe
+      Cookbooks/
+        Api/                 # Cookbook-/Member-Endpunkte
+        Application/         # konkrete Operationen und zentrale CookbookAccess-Regel
       Recipes/
         Api/                 # Bindung und HTTP-Abbildung
         Application/         # Create/Update/Delete/Get/List und Bildoperationen
@@ -46,16 +64,18 @@ backend/
           TextExtraction/    # Gemini-Adapter
     Infrastructure/Persistence/
       RecipeDb.cs
+      AppUser.cs             # Identity-Persistenztypen, außerhalb Domain
       RecipeDbFactory.cs
       Configurations/        # Fluent API je vorhandener Entität
-      Migrations/            # unveränderte IDs und SQL-Historie
-    Common/Http/             # Schreibschutz und OpenAPI-Beschreibung
+      Migrations/            # alte IDs erhalten; additive AccountsAndCookbooks-Migration
+    Common/Application/      # kleiner operationsbezogener Fehler, kein Result-Framework
+    Common/Http/             # Schreibschutz, Fehlerabbildung und OpenAPI
 contracts/                   # generierter OpenAPI-Snapshot
 scripts/                     # isolierter Export und explizite Frontend-Synchronisation
 tests/Recipoke.Tests/         # bestehender Console-Runner, ergänzt um Operations-/Architekturtests
 ```
 
-Der Name `RecipeAtlas.Api` des API-Verzeichnisses bleibt erhalten: der Content Root bestimmt vorhandene relative `DataDirectory`-Werte. Ein Umzug würde eine separate Kompatibilitätsentscheidung erfordern. Es gibt keine leeren Module oder vorsorglich angelegten Auth-Application-Klassen.
+Der Name `RecipeAtlas.Api` des API-Verzeichnisses bleibt erhalten: der Content Root bestimmt vorhandene relative `DataDirectory`-Werte. Ein Umzug würde eine separate Kompatibilitätsentscheidung erfordern. Die neuen Application-Verantwortlichkeiten entstehen aus konkreten Account-/Cookbook-Anwendungsfällen; es gibt keine zukünftigen Leermodule.
 
 ## Komponenten und Abhängigkeiten
 
@@ -65,11 +85,17 @@ flowchart TD
   Angular -->|same-origin /api, Cookie, X-RecipeAtlas| HTTP[Feature API endpoints]
   HTTP --> Recipes[Recipes Application operations]
   HTTP --> Imports[RecipeImports Application]
-  HTTP --> Auth[Authentication infrastructure]
+  HTTP --> Auth[Authentication / Accounts Application]
+  HTTP --> Books[Cookbooks Application / CookbookAccess]
+  Recipes --> Books
+  Books --> Domain
+  Books --> EF
+  Auth --> EF
+  Auth --> Identity[ASP.NET Identity + cookie adapter]
   Recipes --> Domain[Recipoke.Domain]
   Recipes --> EF[RecipeDb / Fluent mappings]
   EF --> Domain
-  EF --> SQLite[(SQLite: Rezepte und Bilder)]
+  EF --> SQLite[(SQLite: Rezepte, Bilder, Identity, Cookbooks, Invitations)]
   Imports --> Domain
   Imports --> Ports[Application-owned provider contracts]
   Website[Website adapter] -. implements .-> Ports
@@ -94,13 +120,13 @@ Es wurden keine neuen Value Objects für rein hypothetische Anforderungen gescha
 
 ## Rezeptoperationen, Persistenz und Transaktionen
 
-Endpunkte binden Requests, erhalten die bestehenden Zugriffsschutzregeln, rufen eine Operation auf und bilden deren Ergebnis auf dieselben HTTP-Antworten ab. `CreateRecipe` und `UpdateRecipe` validieren vor einer Änderung. Ein Update lädt die geordneten Kindkollektionen, ersetzt sie wie zuvor und ruft genau einmal `SaveChangesAsync` auf. Dieser Aufruf besitzt die EF-Transaktion für Rezept und Kinder. Kein nachgelagerter Dienst committet unabhängig dieselbe Operation.
+Endpunkte binden Requests, erhalten die bestehenden Zugriffsschutzregeln, rufen eine Operation auf und bilden deren Ergebnis auf dieselben HTTP-Antworten ab. `CreateRecipe` und `UpdateRecipe` validieren vor einer Änderung. Ein Update lädt die geordneten Kindkollektionen, ersetzt sie wie zuvor und ruft genau einmal `SaveChangesAsync` auf. Die Operation startet jetzt eine explizite SQLite-Serializable-Transaktion **vor** der Aktivitäts-/Cookbook-Prüfung und committet nach SaveChanges. Dadurch kann eine Membership-Änderung keinen bereits autorisierten Write überholen. SaveChanges hält weiterhin Rezept und Kinder atomar zusammen. Kein nachgelagerter Dienst committet unabhängig dieselbe Operation.
 
 `ReplaceRecipeImage` prüft Größe, Existenz und Signatur und speichert Bild und Zeitstempel gemeinsam. `RemoveRecipeImage` besitzt seinen eigenen Commit. Rezepttext und nachfolgender Bild-Upload bleiben zwei HTTP-Operationen; sie bilden absichtlich keine verteilte Transaktion. Das Frontend behält nach einem Bildfehler die bereits erzeugte Rezept-ID und wiederholt keine Erstellung.
 
-`DeleteRecipe` verwendet ein einzelnes `ExecuteDeleteAsync`; SQLite-Fremdschlüssel löschen Kinder und Bild atomar. Eine zusätzliche explizite Transaktion wäre hier redundant. Die Listenoperation projiziert nur Kartenfelder; Bilder und vollständige Zutaten/Schritte werden nicht mitgeladen.
+`DeleteRecipe` verwendet `ExecuteDeleteAsync`; SQLite-Fremdschlüssel löschen Kinder und Bild atomar. Die zusätzliche explizite Transaktion umfasst jetzt auch die aktuelle Berechtigungsprüfung, nicht nur das einzelne Delete. Die Listenoperation projiziert nur Kartenfelder; Bilder und vollständige Zutaten/Schritte werden nicht mitgeladen.
 
-`RecipeOperationTests` verwenden echte temporäre SQLite-Dateien. Ein gezielt ausgelöster Fehler nach mindestens einer tatsächlich ausgeführten Schreibanweisung belegt mit einem frischen DbContext, dass Rezept und Kindänderungen gemeinsam zurückrollen. Der ursprüngliche Migrationstest erzeugt weiterhin synthetische Daten mit `InitialCreate`, aktualisiert auf `StringIngredientQuantities` und prüft Reihenfolge, Bildinhalt und Delete-Cascades.
+`RecipeOperationTests` verwenden echte temporäre SQLite-Dateien. Ein gezielt ausgelöster Fehler nach mindestens einer tatsächlich ausgeführten Schreibanweisung belegt mit einem frischen DbContext, dass Rezept und Kindänderungen gemeinsam zurückrollen. Der Migrationstest erzeugt synthetische Daten mit `InitialCreate`, aktualisiert über `StringIngredientQuantities` auf `AccountsAndCookbooks` und prüft Reihenfolge, Bildinhalt, Zuordnung und Delete-Cascades. Identity-interne SaveChanges bei Provisionierung bleiben in der einen äußeren Transaktion. Kein UoW-Wrapper wird ergänzt.
 
 Startup-Migrationen bleiben aus Kompatibilitätsgründen erhalten. Sie koppeln Verfügbarkeit an ein erfolgreiches Schema-Upgrade und setzen eine einzelne Instanz sowie Sicherungen voraus. Deployment-gesteuerte Migrationen sind eine spätere Betriebsentscheidung. Der Design-Time-Context dient Werkzeugen; Tests und Export starten nie eine Instanz mit Benutzerdaten.
 
@@ -116,7 +142,7 @@ Die Website-Abholung bewahrt URL-/Redirect-Prüfungen, geprüfte Zieladressen, b
 
 ## Angular-Editor
 
-`RecipeEditorComponent` bindet die unveränderte Vorlage und delegiert. Seine drei Provider sind komponentenlokal, nicht `providedIn: 'root'`:
+`RecipeEditorComponent` bindet die um Cookbook-/Permission-Hinweise ergänzte Vorlage und delegiert. Seine drei Provider sind komponentenlokal, nicht `providedIn: 'root'`:
 
 | Eigentümer | Zustand und Verantwortung |
 |---|---|
@@ -145,7 +171,7 @@ python3 scripts/sync_frontend_contracts.py ../RecipeAtlasFrontend --check
 npm run check:contracts
 ```
 
-Der Export verwendet eine temporäre SQLite-Datenbank und zufällige Test-Credentials, entfernt den temporären Server-Port und prüft zusätzlich das Fehlen der Dokumentroute in Production. Es werden keine Credentials oder Inhalte aus einer Benutzerinstanz exportiert.
+Der Export verwendet eine temporäre, noch nicht gebootstrappte SQLite-Datenbank, entfernt den temporären Server-Port und prüft zusätzlich das Fehlen der Dokumentroute in Production. Es werden keine Credentials oder Inhalte aus einer Benutzerinstanz exportiert.
 
 Frontend-CI benötigt keinen Zugriff auf das private Backend. Sie prüft ihren mitgelieferten Snapshot und Fingerprints der kopierten Mengenregeln. Das beweist nicht, dass ein neuerer Backend-Commit bereits synchronisiert wurde. Dafür ist der explizite lokale Cross-Repository-Check vorgesehen; dieser wird nicht als vermeintlich wirksamer Remote-CI-Schritt eingebaut.
 
@@ -155,9 +181,9 @@ Die Beispiele werden aus dem jeweiligen Repository-Hauptverzeichnis ausgeführt.
 
 `../RecipeAtlasFrontend` setzt zwei direkt benachbarte Checkouts voraus. Bei getrennten oder verschachtelten Checkout-Verzeichnissen muss in beiden Cross-Repository-Befehlen der tatsächliche Frontend-Pfad eingesetzt werden, beispielsweise `"/home/name/projects/RecipeAtlasFrontend"`. Gemeint ist immer das Verzeichnis mit `package.json`, nicht dessen Elternverzeichnis. Die beiden Cross-Repository-Prüfungen benötigen zusätzlich zum Backend einen aktuellen Frontend-Checkout; sie sind keine Voraussetzung dafür, dass die eigenständigen Backend-Tests laufen.
 
-Die EF-Ausgabe „Pending status not shown / Unable to determine which migrations have been applied“ ist bei `migrations list --no-connect` erwartbar: es wird bewusst keine Datenbank geöffnet. Die beiden ausgegebenen Migration-IDs belegen die Discovery. `has-pending-model-changes` prüft separat das Modell gegen den Snapshot. Für diese Verifikation ist kein `database update` an einer Benutzerdatenbank erforderlich.
+Die EF-Ausgabe „Pending status not shown / Unable to determine which migrations have been applied“ ist bei `migrations list --no-connect` erwartbar: es wird bewusst keine Datenbank geöffnet. Die drei ausgegebenen Migration-IDs belegen die Discovery. `has-pending-model-changes` prüft separat das Modell gegen den Snapshot. Für diese Verifikation ist kein `database update` an einer Benutzerdatenbank erforderlich.
 
-Benötigt werden .NET SDK 10.0.401, der bestehende lokale EF-Tool-Pin 10.0.12, Python 3 und Node 24.19.0. Andere unterstützte Node-Versionen stehen in `engines`. Framework-/Provider-Upgrades sind nicht Teil des Refactorings; nur die passende OpenAPI-Entwicklungsabhängigkeit wurde ergänzt. NuGet-Lockfiles und `npm ci` sichern die Auflösung.
+Benötigt werden .NET SDK 10.0.401, der bestehende lokale EF-Tool-Pin 10.0.12, Python 3 und Node 24.19.0. Andere unterstützte Node-Versionen stehen in `engines`. Framework-/Provider-Upgrades sind nicht Teil des Refactorings; Identity.EntityFrameworkCore wurde im vorhandenen EF-Patchstand 10.0.12 ergänzt; es gibt kein unabhängiges Framework-Upgrade. NuGet-Lockfiles und `npm ci` sichern die Auflösung.
 
 ```sh
 # Im Backend; in dieser Cloud zuvor: source /workspace/.setup/env.sh
@@ -166,6 +192,7 @@ dotnet tool restore
 dotnet build --no-restore
 dotnet run --no-build --project tests/Recipoke.Tests
 python3 tests/integration.py
+python3 tests/accounts_integration.py
 python3 tests/test_contract_paths.py
 dotnet ef migrations list --no-connect --no-build --project backend/RecipeAtlas.Api
 dotnet ef migrations has-pending-model-changes --no-build --project backend/RecipeAtlas.Api
@@ -189,7 +216,7 @@ Die Workflows in beiden Repositories haben nur `contents: read`. Backend-CI füh
 
 1. Vorhandenen HTTP-Vertrag und Autorisierung festlegen; keine Domain-Entitäten direkt serialisieren.
 2. Eine konkrete Operation in `Features/Recipes/Application` anlegen; fachliche Mengenregeln aus Domain wiederverwenden.
-3. Existenz, Voraussetzungen und Fehlerreihenfolge explizit prüfen. Die Operation besitzt ihre Persistenz; ein `SaveChangesAsync` genügt meist.
+3. Existenz, Voraussetzungen und Fehlerreihenfolge explizit prüfen. Die Operation besitzt ihre Persistenz; bei Writes startet die Transaktion vor `CookbookAccess.RequireAsync` und umfasst Prüfung und Commit. Reads filtern zusätzlich nach der Cookbook-ID. Die Benutzer-ID kommt aus `ICurrentUser`, nicht aus Commands.
 4. Einen dünnen Endpunkt und die Registrierung ergänzen. Ergebnisdaten bleiben frei von `IResult`/`HttpContext`.
 5. Mit echtem SQLite Erfolg, Nichtexistenz und atomare Fehlerfälle testen; HTTP-Vertrag, OpenAPI-Snapshot und Frontend-Check aktualisieren.
 
@@ -215,4 +242,24 @@ Die Workflows in beiden Repositories haben nur `contents: read`. Backend-CI füh
 
 ## Grenzen und vertagte Entscheidungen
 
-Single-owner-Authentifizierung, globale Loginbegrenzung, Last-write-wins, eine SQLite-Instanz, DB-Bildblobs, Startup-Migrationen und speicherinterne Entwürfe bleiben bewusste Grenzen. Multi-User, Concurrency-Tokens, Object Storage, PWA und Offline-Synchronisation wurden nicht vorbereitet. Ein Worker oder zusätzliche Projekte sind erst bei konkreter Last, Isolation oder Teamverantwortung zu bewerten. Live-Provider-Zuverlässigkeit, vollständige Browserdarstellung, vollständige Container-Builds und eine deploymentseitige Egress-Policy sind separat zu prüfen.
+Globale Loginbegrenzung, Last-write-wins, eine SQLite-Instanz, DB-Bildblobs, Startup-Migrationen und speicherinterne Entwürfe bleiben bewusste Grenzen. Multi-User/Cookbooks sind jetzt implementiert; Ownership-Transfer, Account-/Cookbook-Löschung, E-Mail-Reset, Concurrency-Tokens, Object Storage, PWA und Offline-Synchronisation bleiben außerhalb des Umfangs. Ein Worker oder zusätzliche Projekte sind erst bei konkreter Last, Isolation oder Teamverantwortung zu bewerten. Live-Provider-Zuverlässigkeit, vollständige Browserdarstellung, vollständige Container-Builds und eine deploymentseitige Egress-Policy sind separat zu prüfen.
+
+## Account-/Cookbook-Verantwortung und Prinzipien
+
+- `AppUser` und Identity-Store sind Infrastruktur; Domain kennt nur Cookbook-Entitäten, Rollen und reine Einladungszustände. `ICurrentUser` liefert eine optionale ID. `ISessionCookies` trennt Framework-Cookies von Login-/Passwortoperationen (DIP/ISP).
+- `AdministratorAccounts`, `Invitations`, `AdministratorSetup` und `CookbookOperations` besitzen unterschiedliche Lebenszyklen. Endpunkte binden und mappen; die vorhandene hybride direkte EF-Nutzung bleibt ehrlich sichtbar (SRP).
+- `CookbookPermissions` plus `CookbookAccess` sind die gemeinsame Regel für alle Rezept-/Bild-/Memberpfade, keine universelle Permission-Engine. Nicht definierte Rollen gewähren nichts. Aktivität und normalisierte Namen werden an ihren Grenzen geprüft (DRY/YAGNI).
+- `TimeProvider` und `ICurrentUser` lassen sich in Tests ohne HTTP ersetzen. Die Semantik der bisherigen Importprovider bleibt unverändert (LSP); Erweiterbarkeit entsteht an vorhandenen Ports, nicht durch eine neue Schnittstelle für jede Klasse (OCP).
+- Unterstützte Normalisierung beschränkt sich auf Trimmen und Identity-Normalisierung von Benutzernamen sowie bestehende Mengenregeln. Rollen, zusätzliche sicherheitsrelevante JSON-Felder und missgebildete Tokens werden strikt abgewiesen; keine stillschweigende Rollenreparatur (vorsichtige Input-Toleranz).
+- Beide Repository-Verträge ändern sich gemeinsam: Username-Login, CurrentUser und Cookbook-Routen. Ein einzelner Maintainer kann die Features anhand Application-Operationen, zentraler Policy und koordinierter Snapshots nachvollziehen. Conway beschreibt diese organisatorische Abstimmung, keine Pflicht zur Projektvermehrung.
+
+### Berechtigungsmatrix
+
+| Fähigkeit im Cookbook | Owner | Editor | Viewer | Außenstehender/Admin ohne Mitgliedschaft |
+|---|---|---|---|---|
+| Lesen/Suche/Bilder | Ja | Ja | Ja | Nein (404) |
+| Rezept-/Bildänderung | Ja | Ja | Nein (403) | Nein (404) |
+| Name/Mitglieder verwalten | Ja | Nein (403) | Nein (403) | Nein (404) |
+| Austritt | Nein | Ja | Ja | — |
+
+Account-Administration ist separat: nur globale Administratoren listen Accounts/Einladungen und ändern gewöhnliche Aktivitätszustände. Kein Adminzugriff auf fremde Inhalte. Owner-Deaktivierung erhält Inhalte und Mitgliederzugriff; Reaktivierung erfordert neue Anmeldung. Einzelheiten/Races/Backup/Recovery: [ADR 009](adr/009-identity-sessions.md), [010](adr/010-invitations.md), [011](adr/011-cookbook-authorization.md), [012](adr/012-account-upgrade.md) und [Runbook](../accounts-and-cookbooks.md).

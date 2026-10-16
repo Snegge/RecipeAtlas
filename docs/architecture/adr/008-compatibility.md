@@ -1,6 +1,6 @@
 # ADR 008: Kompatibilität vor kosmetischer Vereinheitlichung
 
-Status: umgesetzt.
+Status: als Refactoring-Entscheidung historisch umgesetzt. Die notwendigen Account-/Cookbook-Vertragsänderungen sind ausdrücklich in [ADR 012](012-account-upgrade.md) dokumentiert.
 
 ## Kontext
 

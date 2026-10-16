@@ -1,6 +1,6 @@
 # ADR 006: Same-origin-Cookie für den Eigentümer
 
-Status: umgesetzt.
+Status: historisch; durch [ADR 009](009-identity-sessions.md) für Konten, Hashing und Sitzung ersetzt. Same-origin und Schreibschutz bleiben erhalten.
 
 ## Kontext
 

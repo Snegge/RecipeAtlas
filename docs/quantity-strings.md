@@ -2,7 +2,7 @@
 
 These changes are included in `main` in both repositories; the historical development branches were backend `WebsiteScraping` and frontend `WebsiteReipeEctraction`. Deploy both together: the API now accepts and returns strings for `quantity`, not JSON numbers or null. An older frontend cannot send the new contract correctly. A range cannot be represented by the old backend.
 
-The Recipoke project rename does not require a database migration. The API directory and data location remain unchanged; see [rename compatibility](../README.md#recipoke-rename-compatibility). The migration commands below apply only to databases predating the quantity-string upgrade.
+The Recipoke project rename does not require a database migration. The API directory and data location remain unchanged; see [rename compatibility](../README.md#persistence-compatibility-and-upgrade). The migration commands below apply only to databases predating the quantity-string upgrade.
 
 ## Storage and validation
 
@@ -31,6 +31,8 @@ The authoritative [UCUM 2.2 definitions](https://github.com/ucum-org/ucum/blob/e
 
 ## Migrate an existing development database
 
+**Current account/cookbook version:** follow [the account upgrade runbook](accounts-and-cookbooks.md) first. Applying all pending migrations now also creates the closed account-setup state; finish `--bootstrap-admin` before using the API. The following quantity-specific explanation remains valid, but is not a complete account upgrade procedure.
+
 Stop the running API and back up the entire data directory, including cookie keys and SQLite journal/WAL files. Do not delete the database or initial migration. If `DataDirectory` was overridden, use that directory instead of the default path below.
 
 Only inside the Codex cloud environment, activate its retained SDK/cache environment in Bash. On your own computer, omit this step and use your installed .NET SDK:
@@ -50,7 +52,7 @@ dotnet ef database update --project backend/RecipeAtlas.Api/Recipoke.Api.csproj 
 dotnet run --no-build --project backend/RecipeAtlas.Api/Recipoke.Api.csproj --launch-profile http
 ```
 
-Keep the existing `Owner:PasswordHash` user secret or `Owner__PasswordHash` environment binding. It is not changed by this migration. EF's design-time factory points at `design-time.db`, so the explicit connection above matters. API startup also applies pending migrations to its configured database automatically.
+The quantity migration itself does not change credentials. The current accounts migration supersedes the old owner hash with a newly bootstrapped Identity password. EF's design-time factory points at `design-time.db`, so the explicit connection above matters. API startup also applies pending migrations to its configured database automatically.
 
 From your frontend checkout root, in another terminal:
 
@@ -61,7 +63,7 @@ npm start
 
 `StringIngredientQuantities` preserves the invariant TEXT decimal values already written by EF SQLite, without passing them through REAL/float. Null quantities become empty strings; null `toTaste` therefore becomes `""`. SQLite rebuilds only the Ingredient table to make the string column required, copying IDs, order, notes and recipe IDs and recreating its index/foreign key. Recipes, steps, images and cookie keys are preserved. See the reviewed `string-ingredient-quantities.sql`. No application database was deleted or reset during development.
 
-Downgrade is deliberately refused: new fractions/ranges cannot be represented by the previous decimal contract. For rollback, restore the pre-upgrade data backup together with both old application versions. In production, stop writes, take the backup, replace backend and frontend together, then start one API instance (its normal startup applies the migration). Existing deployment networking, authentication and image handling are unchanged.
+Downgrade is deliberately refused: new fractions/ranges cannot be represented by the previous decimal contract. For rollback, restore the pre-upgrade data backup together with both old application versions. In production, stop writes, take the backup, replace backend and frontend together, then start one API instance (its normal startup applies the migration). Quantity-only deployments kept networking/authentication unchanged; the current account feature requires a fresh login and cookbook-scoped image routes.
 
 ## Tests
 
