@@ -21,12 +21,11 @@ if not DLL.exists():
     raise SystemExit("First run: dotnet build backend/RecipeAtlas.Api/Recipoke.Api.csproj")
 
 password = secrets.token_urlsafe(32)
-hashed = subprocess.run([DOTNET, str(DLL), "--hash-password"], input=password + "\n",
-                        text=True, capture_output=True, check=True).stdout.strip()
 with socket.socket() as sock:
     sock.bind(("127.0.0.1", 0))
     port = sock.getsockname()[1]
 base = f"http://127.0.0.1:{port}"
+recipes_path = "/api/cookbooks/719ead20-283b-4ad3-995e-fd1e9b09b402/recipes"
 cookies = http.cookiejar.CookieJar()
 client = urllib.request.build_opener(urllib.request.HTTPCookieProcessor(cookies))
 checks = 0
@@ -59,9 +58,11 @@ def request(method, path, expected, data=None, csrf=True, authenticated=True, co
 with tempfile.TemporaryDirectory(prefix="recipoke-test-") as temporary:
     environment = dict(os.environ, ASPNETCORE_ENVIRONMENT="Development",
                        ASPNETCORE_URLS=base, DataDirectory=temporary,
-                       Owner__PasswordHash=hashed)
+                       Accounts__PublicAppUrl="http://localhost:4200")
     # Deterministic suite must never use a configured paid model provider.
     environment["RecipeText__ApiKey"] = ""
+    subprocess.run([DOTNET, str(DLL), "--bootstrap-admin"], input="integration-owner\nIntegration owner\n" + password + "\n",
+                   text=True, capture_output=True, check=True, env=environment, cwd=ROOT)
     log_path = Path(temporary) / "server.log"
     log = log_path.open("w+")
     process = None
@@ -85,11 +86,11 @@ with tempfile.TemporaryDirectory(prefix="recipoke-test-") as temporary:
 
     try:
         process = start()
-        request("GET", "/api/recipes", 401, authenticated=False)
-        request("POST", "/api/auth/login", 403, {"password": password}, csrf=False)
+        request("GET", recipes_path, 401, authenticated=False)
+        request("POST", "/api/auth/login", 403, {"username": "integration-owner", "password": password}, csrf=False)
         request("POST", "/api/auth/login", 401, {"password": "incorrect"})
-        request("POST", "/api/auth/login", 204, {"password": password})
-        assert any(cookie.name == "RecipeAtlas.Session" and cookie.path == "/api" for cookie in cookies)
+        request("POST", "/api/auth/login", 204, {"username": "integration-owner", "password": password})
+        assert any(cookie.name == "Recipoke.Session" and cookie.path == "/api" for cookie in cookies)
         request("GET", "/api/auth/me", 200)
         request("POST", "/api/recipes/import", 401, {"text": "2 eggs"}, authenticated=False)
         request("POST", "/api/recipes/import", 403, {"text": "2 eggs"}, csrf=False)
@@ -102,18 +103,18 @@ with tempfile.TemporaryDirectory(prefix="recipoke-test-") as temporary:
         recipe = json.loads((ROOT / "sample-recipe.json").read_text())
         invalid = copy.deepcopy(recipe)
         invalid["ingredients"][0]["unit"] = "handful"
-        request("POST", "/api/recipes", 400, invalid)
+        request("POST", recipes_path, 400, invalid)
         invalid = copy.deepcopy(recipe)
         invalid["ingredients"] = [None]
-        request("POST", "/api/recipes", 400, invalid)
+        request("POST", recipes_path, 400, invalid)
         invalid = copy.deepcopy(recipe)
         invalid["ingredients"][0]["quantity"] = "-1"
-        request("POST", "/api/recipes", 400, invalid)
+        request("POST", recipes_path, 400, invalid)
         invalid = copy.deepcopy(recipe)
         invalid["sourceUrl"] = "javascript:alert(1)"
-        request("POST", "/api/recipes", 400, invalid)
-        created = request("POST", "/api/recipes", 201, recipe)
-        path = "/api/recipes/" + created["id"]
+        request("POST", recipes_path, 400, invalid)
+        created = request("POST", recipes_path, 201, recipe)
+        path = recipes_path + "/" + created["id"]
         assert created["ingredients"][0]["quantity"] == "200"
         assert created["ingredients"][-1]["quantity"] == ""
         for quantity, expected in [("0,5", "0.5"), ("1/3", "1/3"), ("1 1/2", "1 1/2"),
@@ -135,11 +136,11 @@ with tempfile.TemporaryDirectory(prefix="recipoke-test-") as temporary:
         request("PUT", path, 400, invalid)
         request("PUT", path, 200, recipe)
         assert set(created) == {"id", "title", "description", "sourceUrl", "servings", "ingredients", "steps", "imageUrl", "createdAtUtc", "updatedAtUtc"}
-        listing = request("GET", "/api/recipes?search=PASTA&pageSize=5", 200)
+        listing = request("GET", recipes_path + '?search=PASTA&pageSize=5', 200)
         assert listing["total"] == 1 and "ingredients" not in listing["items"][0]
-        assert request("GET", "/api/recipes?search=olive", 200)["total"] == 1
-        assert request("GET", "/api/recipes?search=%25", 200)["total"] == 0
-        request("GET", "/api/recipes?pageSize=101", 400)
+        assert request("GET", recipes_path + '?search=olive', 200)["total"] == 1
+        assert request("GET", recipes_path + '?search=%25', 200)["total"] == 0
+        request("GET", recipes_path + '?pageSize=101', 400)
         recipe["title"] = "Updated pasta"
         recipe["ingredients"] = recipe["ingredients"][:1]
         recipe["ingredients"][0]["quantity"] = "3—4"
@@ -174,7 +175,7 @@ with tempfile.TemporaryDirectory(prefix="recipoke-test-") as temporary:
         request("GET", path, 404)
         request("GET", path + "/image", 404)
         request("POST", "/api/auth/logout", 204)
-        request("GET", "/api/recipes", 401)
+        request("GET", recipes_path, 401)
         print(f"Passed {checks} HTTP checks, including persistence across restart.")
     finally:
         if process is not None and process.poll() is None:

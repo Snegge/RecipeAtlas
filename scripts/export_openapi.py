@@ -17,15 +17,13 @@ parser.add_argument('--check', action='store_true')
 args = parser.parse_args()
 dll = root / 'backend/RecipeAtlas.Api/bin/Debug/net10.0/Recipoke.Api.dll'
 dotnet = os.environ.get('RECIPOKE_DOTNET', 'dotnet')
-password = secrets.token_urlsafe(32)
-hashed = subprocess.run([dotnet, str(dll), '--hash-password'], input=password+'\n', text=True, capture_output=True, check=True).stdout.strip()
 with socket.socket() as sock:
     sock.bind(('127.0.0.1', 0))
     port = sock.getsockname()[1]
 base = f'http://127.0.0.1:{port}'
 with tempfile.TemporaryDirectory(prefix='recipoke-openapi-') as directory:
     environment = dict(os.environ, ASPNETCORE_ENVIRONMENT='Development', ASPNETCORE_URLS=base,
-                       DataDirectory=directory, Owner__PasswordHash=hashed, RecipeText__ApiKey='')
+                       DataDirectory=directory, RecipeText__ApiKey='')
     with open(Path(directory)/'api.log', 'w') as log:
         def start():
             process = subprocess.Popen([dotnet, str(dll)], cwd=root, env=environment, stdout=log, stderr=subprocess.STDOUT)

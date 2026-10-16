@@ -12,12 +12,12 @@ public static class ApiDescription
             options.AddDocumentTransformer((document, context, ct) =>
             {
                 document.Info.Title = "Recipoke API";
-                document.Info.Description = "Single-owner same-origin API. Quantities are strings. Development-only description.";
+                document.Info.Description = "Invitation-only accounts and cookbook-scoped recipes. Quantities are strings. Development-only description.";
                 document.Components ??= new();
                 document.Components.SecuritySchemes ??= new Dictionary<string, IOpenApiSecurityScheme>();
-                document.Components.SecuritySchemes["ownerCookie"] = new OpenApiSecurityScheme
+                document.Components.SecuritySchemes["sessionCookie"] = new OpenApiSecurityScheme
                 {
-                    Type = SecuritySchemeType.ApiKey, In = ParameterLocation.Cookie, Name = "RecipeAtlas.Session"
+                    Type = SecuritySchemeType.ApiKey, In = ParameterLocation.Cookie, Name = "Recipoke.Session"
                 };
                 return Task.CompletedTask;
             });
@@ -27,9 +27,10 @@ public static class ApiDescription
                 var method = context.Description.HttpMethod ?? "GET";
                 if (context.Description.ActionDescriptor.EndpointMetadata.OfType<IAuthorizeData>().Any())
                 {
-                    operation.Security = [new OpenApiSecurityRequirement { [new OpenApiSecuritySchemeReference("ownerCookie", context.Document)] = [] }];
+                    operation.Security = [new OpenApiSecurityRequirement { [new OpenApiSecuritySchemeReference("sessionCookie", context.Document)] = [] }];
                     operation.Responses ??= new();
-                    operation.Responses.TryAdd("401", new OpenApiResponse { Description = "Owner authentication required" });
+                    operation.Responses.TryAdd("401", new OpenApiResponse { Description = "Active account authentication required" });
+                    operation.Responses.TryAdd("403", new OpenApiResponse { Description = "Insufficient account or cookbook permissions" });
                 }
                 if (path.StartsWith("api/") && method is not ("GET" or "HEAD" or "OPTIONS"))
                 {
@@ -42,6 +43,13 @@ public static class ApiDescription
                     });
                     operation.Responses ??= new();
                     operation.Responses.TryAdd("403", new OpenApiResponse { Description = "Missing write header" });
+                }
+                if (path.StartsWith("api/"))
+                {
+                    operation.Responses ??= new();
+                    operation.Responses.TryAdd("503", new OpenApiResponse { Description = "Administrator setup or required provider configuration is missing" });
+                    if (path.Contains("cookbooks/{"))
+                        operation.Responses.TryAdd("404", new OpenApiResponse { Description = "Resource missing or outside accessible cookbooks" });
                 }
                 // Description only: Accepts metadata would change raw-image request validation.
                 if (method == "PUT" && path.EndsWith("/image"))

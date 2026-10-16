@@ -9,7 +9,7 @@ public static class RecipeMapping
         recipe.Ingredients.OrderBy(x => x.Position)
             .Select(x => new IngredientResponse(x.Name, x.Quantity, x.Unit, x.Note)).ToArray(),
         recipe.Steps.OrderBy(x => x.Position).Select(x => x.Instruction).ToArray(),
-        hasImage ? $"/api/recipes/{recipe.Id}/image" : null,
+        hasImage ? $"/api/cookbooks/{recipe.CookbookId}/recipes/{recipe.Id}/image" : null,
         recipe.CreatedAtUtc, recipe.UpdatedAtUtc);
 
     public static void Apply(Recipe recipe, RecipeInput input)

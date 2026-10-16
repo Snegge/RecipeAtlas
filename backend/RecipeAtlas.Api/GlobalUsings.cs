@@ -3,3 +3,7 @@ global using Recipoke.Domain.Quantities;
 global using Recipoke.Api.Features.RecipeImports.Application;
 global using Recipoke.Api.Features.RecipeImports.Contracts;
 global using Recipoke.Api.Infrastructure.Persistence;
+global using Recipoke.Api.Common.Application;
+global using Recipoke.Api.Features.Authentication.Application;
+global using Recipoke.Api.Features.Cookbooks.Application;
+global using Recipoke.Domain.Cookbooks;

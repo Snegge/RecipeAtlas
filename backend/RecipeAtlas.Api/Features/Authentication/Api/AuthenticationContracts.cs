@@ -1,3 +1,4 @@
+using System.Text.Json.Serialization;
 namespace Recipoke.Api.Features.Authentication.Api;
-
-public sealed record LoginInput(string? Password);
+[JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Disallow)]
+public sealed record LoginInput(string? Username, string? Password);

@@ -1,5 +1,10 @@
 using Recipoke.Api.Common.Http;
 using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Identity;
+using Recipoke.Api.Features.Cookbooks.Api;
+using Recipoke.Api.Features.Accounts;
+using Recipoke.Api.Features.Accounts.Application;
+using Recipoke.Api.Features.Accounts.Api;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.RateLimiting;
@@ -11,12 +16,6 @@ using Recipoke.Api.Features.Recipes;
 using Recipoke.Api.Features.Recipes.Api;
 using Recipoke.Api.Features.RecipeImports;
 using Recipoke.Api.Features.RecipeImports.Api;
-
-if (args.Contains("--hash-password"))
-{
-    OwnerAuth.PrintPasswordHash();
-    return;
-}
 
 var builder = WebApplication.CreateBuilder(args);
 var dataDirectory = Path.GetFullPath(builder.Configuration["DataDirectory"] ?? "data",
@@ -31,51 +30,51 @@ builder.WebHost.ConfigureKestrel(options => options.Limits.MaxRequestBodySize = 
 builder.Services.AddDbContext<RecipeDb>(options => options.UseSqlite(connection));
 builder.Services.AddProblemDetails();
 builder.Services.AddApiDescription();
-// Compatibility identity: existing cookie keys must survive the Recipoke rename.
+// Keep the established key ring and application discriminator; the new Identity scheme rejects owner cookies.
 builder.Services.AddDataProtection().SetApplicationName("RecipeAtlas")
     .PersistKeysToFileSystem(new DirectoryInfo(Path.Combine(dataDirectory, "keys")));
 
-var passwordHash = builder.Configuration["Owner:PasswordHash"];
-if (string.IsNullOrWhiteSpace(passwordHash))
-    throw new InvalidOperationException(
-        "Set Owner:PasswordHash using user-secrets locally or Owner__PasswordHash in production. See README.md.");
-var owner = new OwnerAuth(passwordHash);
-builder.Services.AddSingleton(owner);
-builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
-    .AddCookie(options =>
-    {
-        options.Cookie.Name = "RecipeAtlas.Session"; // Preserve existing browser sessions.
-        options.Cookie.Path = "/api";
-        options.Cookie.HttpOnly = true;
-        options.Cookie.SameSite = SameSiteMode.Strict;
-        options.Cookie.SecurePolicy = builder.Environment.IsDevelopment()
-            ? CookieSecurePolicy.SameAsRequest : CookieSecurePolicy.Always;
-        options.ExpireTimeSpan = TimeSpan.FromDays(14);
-        options.SlidingExpiration = false;
-        options.Events.OnRedirectToLogin = context =>
-        { context.Response.StatusCode = 401; return Task.CompletedTask; };
-        options.Events.OnRedirectToAccessDenied = context =>
-        { context.Response.StatusCode = 403; return Task.CompletedTask; };
-        options.Events.OnValidatePrincipal = async context =>
-        {
-            // Changing the configured password hash and restarting revokes older sessions.
-            if (context.Principal?.FindFirst("stamp")?.Value != owner.Stamp)
-            {
-                context.RejectPrincipal();
-                await context.HttpContext.SignOutAsync();
-            }
-        };
-    });
+builder.Services.AddHttpContextAccessor();
+builder.Services.AddSingleton(TimeProvider.System);
+builder.Services.Configure<AccountOptions>(builder.Configuration.GetSection("Accounts"));
+builder.Services.AddIdentityCore<AppUser>(options =>
+{
+    options.Password.RequiredLength = 12; options.Password.RequireDigit = false;
+    options.Password.RequireUppercase = false; options.Password.RequireLowercase = false;
+    options.Password.RequireNonAlphanumeric = false;
+    options.User.AllowedUserNameCharacters = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-._";
+    options.Lockout.MaxFailedAccessAttempts = 5; options.Lockout.DefaultLockoutTimeSpan = TimeSpan.FromMinutes(15);
+}).AddEntityFrameworkStores<RecipeDb>().AddSignInManager().AddDefaultTokenProviders();
+builder.Services.AddAuthentication(IdentityConstants.ApplicationScheme).AddCookie(IdentityConstants.ApplicationScheme, options =>
+{
+    // New cookie and Identity scheme deliberately reject every old single-owner session.
+    options.Cookie.Name = "Recipoke.Session"; options.Cookie.Path = "/api";
+    options.Cookie.HttpOnly = true; options.Cookie.SameSite = SameSiteMode.Strict;
+    options.Cookie.SecurePolicy = builder.Environment.IsDevelopment() ? CookieSecurePolicy.SameAsRequest : CookieSecurePolicy.Always;
+    options.ExpireTimeSpan = TimeSpan.FromDays(14); options.SlidingExpiration = false;
+    options.Events.OnRedirectToLogin = context => { context.Response.StatusCode = 401; return Task.CompletedTask; };
+    options.Events.OnRedirectToAccessDenied = context => { context.Response.StatusCode = 403; return Task.CompletedTask; };
+    options.Events.OnValidatePrincipal = ActiveSessionValidation.ValidateAsync;
+});
+builder.Services.AddScoped<ICurrentUser, HttpCurrentUser>();
+builder.Services.AddScoped<ISessionCookies, IdentitySessions>();
+builder.Services.AddScoped<AccountAccess>(); builder.Services.AddScoped<AccountAuthentication>();
+builder.Services.AddScoped<AdministratorSetup>(); builder.Services.AddScoped<AdministratorAccounts>();
+builder.Services.AddScoped<Invitations>(); builder.Services.AddScoped<CookbookAccess>(); builder.Services.AddScoped<CookbookOperations>();
 builder.Services.AddAuthorization();
 builder.Services.AddRateLimiter(options =>
 {
     options.RejectionStatusCode = 429;
-    // Single-owner application: one shared login budget avoids trusting proxy IP headers.
+    // Small single-instance deployment: shared login budget avoids trusting proxy IP headers.
     options.AddFixedWindowLimiter("login", limiter =>
     {
         limiter.PermitLimit = 10;
         limiter.Window = TimeSpan.FromMinutes(15);
         limiter.QueueLimit = 0;
+    });
+    options.AddFixedWindowLimiter("invitation", limiter =>
+    {
+        limiter.PermitLimit = 30; limiter.Window = TimeSpan.FromMinutes(1); limiter.QueueLimit = 0;
     });
     options.AddFixedWindowLimiter("recipe-import", limiter =>
     {
@@ -104,6 +103,8 @@ app.UseStatusCodePages();
 // send it without CORS preflight approval. This API deliberately enables no CORS.
 // Use a development proxy and the same public origin for frontend and API.
 app.UseMiddleware<BrowserWriteProtection>();
+app.UseMiddleware<OperationFailures>();
+app.UseMiddleware<AccountSetupGate>();
 app.UseAuthentication();
 app.UseAuthorization();
 app.UseRateLimiter();
@@ -114,7 +115,16 @@ await using (var scope = app.Services.CreateAsyncScope())
 
 app.MapGet("/health", () => Results.Ok(new { status = "ok" }));
 
+if (args.Contains("--bootstrap-admin") || args.Contains("--recover-admin"))
+{
+    try { await AdministratorCommands.RunAsync(app.Services, args.Contains("--recover-admin")); }
+    catch (OperationFailure failure) { Console.Error.WriteLine(failure.Message); Environment.ExitCode = 1; }
+    return;
+}
+
 AuthenticationEndpoints.Map(app);
+AccountEndpoints.Map(app);
+CookbookEndpoints.Map(app);
 RecipeEndpoints.Map(app);
 RecipeImportEndpoints.Map(app);
 

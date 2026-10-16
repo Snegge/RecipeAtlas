@@ -16,6 +16,7 @@ jobs:
       # Console runner: dotnet test would not execute this suite.
       - run: dotnet run --no-build --project tests/Recipoke.Tests
       - run: python3 tests/integration.py
+      - run: python3 tests/accounts_integration.py
       - run: python3 tests/test_contract_paths.py
       - run: dotnet ef migrations list --no-connect --no-build --project backend/RecipeAtlas.Api
       - run: dotnet ef migrations has-pending-model-changes --no-build --project backend/RecipeAtlas.Api
