@@ -34,6 +34,7 @@ internal static class ArchitectureTests
             count++;
         }
         check(count > 100, "Architecture checks inspected actual signature and IL dependencies");
+        Console.WriteLine($"Architecture boundaries: {count} signature/IL dependencies inspected.");
         // Prove the scanner observes calls, rather than only class names/signatures.
         check(Dependencies(typeof(ForbiddenProbe)).Contains(typeof(File)), "Dependency scanner detects a forbidden method-body reference");
     }

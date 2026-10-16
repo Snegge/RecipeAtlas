@@ -8,8 +8,6 @@ using Microsoft.Extensions.Options;
 
 namespace Recipoke.Api.Features.Authentication.Infrastructure;
 
-public sealed record LoginInput(string? Password);
-
 public sealed class OwnerAuth
 {
     private static readonly object Owner = new();

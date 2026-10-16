@@ -8,7 +8,7 @@ internal static class RecipeOperationTests
     {
         var directory = Path.Combine(Path.GetTempPath(), "recipoke-operations-" + Guid.NewGuid());
         Directory.CreateDirectory(directory);
-        var fail = new FailIngredientInsert();
+        var fail = new FailAfterFirstWrite();
         var options = new DbContextOptionsBuilder<RecipeDb>().UseSqlite("Data Source=" + Path.Combine(directory, "test.db"))
             .AddInterceptors(fail).Options;
         try
@@ -31,13 +31,14 @@ internal static class RecipeOperationTests
             check(await replace.ExecuteAsync(Guid.NewGuid(), Stream.Null, ReplaceRecipeImage.MaxImageBytes + 1, default) == ImageReplacementError.TooLarge, "Size precedes existence check");
             var update = new UpdateRecipe(db);
             var changed = (await update.ExecuteAsync(id, Input("Updated") with { Steps = ["Second", "First"] }, default)).Recipe!;
-            check(changed.ImageUrl == created.ImageUrl || changed.ImageUrl == $"/api/recipes/{id}/image", "Text update preserves image");
+            check(changed.ImageUrl == $"/api/recipes/{id}/image" && (await new GetRecipeImage(db).ExecuteAsync(id, default))!.Bytes.SequenceEqual(bytes), "Text update preserves image");
             check(changed.Steps.SequenceEqual(["Second", "First"]), "Update replaces ordered steps");
             check((await update.ExecuteAsync(Guid.NewGuid(), Input("Missing"), default)).Recipe is null, "Update missing resource");
             // Fail after EF has begun the multi-statement replacement. Read with a fresh context.
             fail.Enabled = true;
             try { await update.ExecuteAsync(id, Input("Must roll back"), default); throw new Exception("Expected injected write failure"); }
             catch (DbUpdateException) { }
+            check(fail.WritesBeforeFailure > 0, "Rollback test fails only after a real write executed");
             fail.Enabled = false;
             db.ChangeTracker.Clear();
             await using (var verify = new RecipeDb(options))
@@ -57,14 +58,22 @@ internal static class RecipeOperationTests
         }
         finally { Microsoft.Data.Sqlite.SqliteConnection.ClearAllPools(); Directory.Delete(directory, true); }
     }
-    private sealed class FailIngredientInsert : DbCommandInterceptor
+    private sealed class FailAfterFirstWrite : DbCommandInterceptor
     {
         public bool Enabled { get; set; }
+        public int WritesBeforeFailure { get; private set; }
+        private static bool IsWrite(DbCommand command) => new[] { "INSERT", "UPDATE", "DELETE" }.Any(word => command.CommandText.TrimStart().StartsWith(word, StringComparison.Ordinal));
         public override ValueTask<InterceptionResult<DbDataReader>> ReaderExecutingAsync(DbCommand command, CommandEventData eventData,
             InterceptionResult<DbDataReader> result, CancellationToken cancellationToken = default)
         {
-            if (Enabled && command.CommandText.Contains("INSERT INTO \"Ingredient\"")) throw new InvalidOperationException("Injected write failure");
+            if (Enabled && IsWrite(command) && WritesBeforeFailure > 0) throw new InvalidOperationException("Injected write failure after a successful statement");
             return base.ReaderExecutingAsync(command, eventData, result, cancellationToken);
+        }
+        public override ValueTask<DbDataReader> ReaderExecutedAsync(DbCommand command, CommandExecutedEventData eventData,
+            DbDataReader result, CancellationToken cancellationToken = default)
+        {
+            if (Enabled && IsWrite(command)) WritesBeforeFailure++;
+            return base.ReaderExecutedAsync(command, eventData, result, cancellationToken);
         }
     }
 }
