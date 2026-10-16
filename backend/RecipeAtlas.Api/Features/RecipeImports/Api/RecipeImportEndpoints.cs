@@ -8,7 +8,8 @@ public static class RecipeImportEndpoints
             .RequireAuthorization()
             .RequireRateLimiting("recipe-import")
             .WithName("ImportRecipe")
-            .WithTags("Recipe Import");
+            .WithTags("Recipe Import")
+            .Produces<RecipeImportResult>().ProducesProblem(400).ProducesProblem(422).ProducesProblem(429).ProducesProblem(502).ProducesProblem(503).ProducesProblem(504);
     }
 
     private static async Task<IResult> ImportAsync(

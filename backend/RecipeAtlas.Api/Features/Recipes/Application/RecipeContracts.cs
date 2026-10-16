@@ -17,3 +17,5 @@ public sealed record RecipePage(IReadOnlyList<RecipeCard> Items, int Total, int 
 public sealed record SaveRecipeResult(RecipeResponse? Recipe, Dictionary<string, string[]> Errors);
 public sealed record ListRecipesResult(RecipePage? Page, string? Error);
 public enum ImageReplacementError { NotFound, TooLarge, UnsupportedType }
+
+public sealed record ImageResponse(string ImageUrl);

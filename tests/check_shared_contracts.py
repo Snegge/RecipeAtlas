@@ -5,6 +5,7 @@ import sys
 backend = Path(__file__).resolve().parents[1]
 frontend = Path(sys.argv[1] if len(sys.argv) > 1 else backend.parent / 'RecipeAtlasFrontend')
 pairs = [
+    (backend / 'contracts/recipoke.openapi.json', frontend / 'contracts/recipoke.openapi.json'),
     (backend / 'tests/fixtures/quantity-cases.json', frontend / 'src/app/core/utils/fixtures/quantity-cases.json'),
     (backend / 'backend/Recipoke.Domain/Quantities/MeasurementUnits.json', frontend / 'src/app/core/utils/measurement-units.json'),
 ]

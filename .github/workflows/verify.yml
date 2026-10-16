@@ -1,0 +1,21 @@
+name: Verify backend
+on: [push, pull_request]
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.401'
+      - run: dotnet restore --locked-mode
+      - run: dotnet tool restore
+      - run: dotnet build --no-restore
+      # Console runner: dotnet test would not execute this suite.
+      - run: dotnet run --no-build --project tests/Recipoke.Tests
+      - run: python3 tests/integration.py
+      - run: dotnet ef migrations list --no-connect --no-build --project backend/RecipeAtlas.Api
+      - run: dotnet ef migrations has-pending-model-changes --no-build --project backend/RecipeAtlas.Api
+      - run: python3 scripts/export_openapi.py --check

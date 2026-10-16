@@ -32,7 +32,7 @@ client = urllib.request.build_opener(urllib.request.HTTPCookieProcessor(cookies)
 checks = 0
 
 
-def request(method, path, expected, data=None, csrf=True, authenticated=True):
+def request(method, path, expected, data=None, csrf=True, authenticated=True, content_type=None):
     global checks
     headers = {"X-RecipeAtlas": "1"} if csrf else {}
     if isinstance(data, (dict, list)):
@@ -40,6 +40,8 @@ def request(method, path, expected, data=None, csrf=True, authenticated=True):
         headers["Content-Type"] = "application/json"
     elif isinstance(data, bytes):
         headers["Content-Type"] = "application/octet-stream"
+    if content_type is not None:
+        headers["Content-Type"] = content_type
     req = urllib.request.Request(base + path, data=data, headers=headers, method=method)
     opener = client if authenticated else urllib.request.build_opener()
     try:
@@ -87,6 +89,7 @@ with tempfile.TemporaryDirectory(prefix="recipoke-test-") as temporary:
         request("POST", "/api/auth/login", 403, {"password": password}, csrf=False)
         request("POST", "/api/auth/login", 401, {"password": "incorrect"})
         request("POST", "/api/auth/login", 204, {"password": password})
+        assert any(cookie.name == "RecipeAtlas.Session" and cookie.path == "/api" for cookie in cookies)
         request("GET", "/api/auth/me", 200)
         request("POST", "/api/recipes/import", 401, {"text": "2 eggs"}, authenticated=False)
         request("POST", "/api/recipes/import", 403, {"text": "2 eggs"}, csrf=False)
@@ -131,6 +134,7 @@ with tempfile.TemporaryDirectory(prefix="recipoke-test-") as temporary:
         invalid["ingredients"][0]["unit"] = "lb"
         request("PUT", path, 400, invalid)
         request("PUT", path, 200, recipe)
+        assert set(created) == {"id", "title", "description", "sourceUrl", "servings", "ingredients", "steps", "imageUrl", "createdAtUtc", "updatedAtUtc"}
         listing = request("GET", "/api/recipes?search=PASTA&pageSize=5", 200)
         assert listing["total"] == 1 and "ingredients" not in listing["items"][0]
         assert request("GET", "/api/recipes?search=olive", 200)["total"] == 1
@@ -148,6 +152,8 @@ with tempfile.TemporaryDirectory(prefix="recipoke-test-") as temporary:
         png = base64.b64decode("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aWZkAAAAASUVORK5CYII=")
         request("PUT", path + "/image", 403, png, csrf=False)
         request("PUT", path + "/image", 200, png)
+        # Raw image signature remains authoritative, even with a misleading MIME header.
+        request("PUT", path + "/image", 200, png, content_type="text/plain")
         assert request("GET", path + "/image", 200) == png
         request("GET", path + "/image", 401, authenticated=False)
         assert request("GET", path, 200)["imageUrl"] == path + "/image"

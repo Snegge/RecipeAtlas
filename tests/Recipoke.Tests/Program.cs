@@ -140,7 +140,8 @@ finally { Microsoft.Data.Sqlite.SqliteConnection.ClearAllPools(); Directory.Dele
 await SocialImportTests.RunAsync(Check);
 await RecipeOperationTests.RunAsync(Check);
 await ImportPolicyTests.RunAsync(Check);
-Console.WriteLine($"Passed {count} quantity, website/social/text import, process, validation and SQLite migration checks.");
+ArchitectureTests.Run(Check);
+Console.WriteLine($"Passed {count} domain, operation, import, process, SQLite and architecture checks.");
 
 static async Task<List<string?[]>> ReadRows(RecipeDb db)
 {

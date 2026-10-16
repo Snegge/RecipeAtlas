@@ -1,3 +1,4 @@
+using Recipoke.Api.Common.Http;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.DataProtection;
@@ -29,6 +30,7 @@ var connection = new SqliteConnectionStringBuilder
 builder.WebHost.ConfigureKestrel(options => options.Limits.MaxRequestBodySize = 6 * 1024 * 1024);
 builder.Services.AddDbContext<RecipeDb>(options => options.UseSqlite(connection));
 builder.Services.AddProblemDetails();
+builder.Services.AddApiDescription();
 // Compatibility identity: existing cookie keys must survive the Recipoke rename.
 builder.Services.AddDataProtection().SetApplicationName("RecipeAtlas")
     .PersistKeysToFileSystem(new DirectoryInfo(Path.Combine(dataDirectory, "keys")));
@@ -87,6 +89,8 @@ builder.Services.AddRecipeOperations();
 builder.Services.AddRecipeImport();
 
 var app = builder.Build();
+// Deliberate exposure policy: no documentation route in Production.
+if (app.Environment.IsDevelopment()) app.MapOpenApi();
 app.UseExceptionHandler(new ExceptionHandlerOptions
 {
     // Minimal API binding can throw in Development. Malformed/string-contract
@@ -99,21 +103,7 @@ app.UseStatusCodePages();
 // Browser writes must carry this non-safelisted header. Cross-origin websites cannot
 // send it without CORS preflight approval. This API deliberately enables no CORS.
 // Use a development proxy and the same public origin for frontend and API.
-app.Use(async (context, next) =>
-{
-    context.Response.Headers["X-Content-Type-Options"] = "nosniff";
-    context.Response.Headers.CacheControl = "no-store";
-    if (context.Request.Path.StartsWithSegments("/api") &&
-        !(HttpMethods.IsGet(context.Request.Method) || HttpMethods.IsHead(context.Request.Method) ||
-          HttpMethods.IsOptions(context.Request.Method)) &&
-        context.Request.Headers["X-RecipeAtlas"] != "1")
-    {
-        await Results.Problem(statusCode: 403, title: "Missing X-RecipeAtlas: 1 header.")
-            .ExecuteAsync(context);
-        return;
-    }
-    await next(context);
-});
+app.UseMiddleware<BrowserWriteProtection>();
 app.UseAuthentication();
 app.UseAuthorization();
 app.UseRateLimiter();

@@ -76,10 +76,10 @@ public sealed class RecipeImportService
         {
             return await importer.Provider.ImportAsync(uri, timeout.Token);
         }
-        catch (Exception error) when (importer.Policy.RetrievalFailureMessage is not null && error is HttpRequestException or System.Net.Sockets.SocketException or IOException)
+        catch (Exception error) when (importer.Policy.RetrievalFailure is not null && error is HttpRequestException or System.Net.Sockets.SocketException or IOException)
         {
-            throw new RecipeImportException(importer.Policy.RetrievalFailureMessage!,
-                502, "social_retrieval_failed", importer.Policy.CanPasteText);
+            throw new RecipeImportException(importer.Policy.RetrievalFailure!.Value.Message,
+                502, importer.Policy.RetrievalFailure!.Value.Code, importer.Policy.CanPasteText);
         }
         catch (OperationCanceledException)
             when (!cancellationToken.IsCancellationRequested)
