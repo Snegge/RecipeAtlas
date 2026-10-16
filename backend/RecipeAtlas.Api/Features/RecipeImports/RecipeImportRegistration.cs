@@ -1,6 +1,9 @@
+using Recipoke.Api.Features.RecipeImports.Infrastructure.Website;
+using Recipoke.Api.Features.RecipeImports.Infrastructure.Social;
+using Recipoke.Api.Features.RecipeImports.Infrastructure.TextExtraction;
 using System.Net.Http.Headers;
 
-namespace Recipoke.Api.Features.RecipeImport;
+namespace Recipoke.Api.Features.RecipeImports;
 
 public static class RecipeImportRegistration
 {
@@ -40,9 +43,13 @@ public static class RecipeImportRegistration
         services.AddSingleton<RecipeTextExtractor>();
         services.AddSingleton<IMetadataProcessRunner, BoundedProcessRunner>();
         services.AddScoped<ISocialDescriptionRetriever, YtDlpDescriptionRetriever>();
-        services.AddScoped<IRecipeImporter, SocialRecipeImporter>();
+        services.AddScoped<SocialRecipeImporter>();
+        services.AddScoped(provider => new RecipeImporterRegistration(
+            provider.GetRequiredService<SocialRecipeImporter>(), ImportExecutionPolicy.Social));
         services.AddScoped<JsonLdRecipeExtractor>();
-        services.AddScoped<IRecipeImporter, WebsiteRecipeImporter>();
+        services.AddScoped<WebsiteRecipeImporter>();
+        services.AddScoped(provider => new RecipeImporterRegistration(
+            provider.GetRequiredService<WebsiteRecipeImporter>(), ImportExecutionPolicy.Website));
         services.AddScoped<RecipeImportService>();
 
         return services;

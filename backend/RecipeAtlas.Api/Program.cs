@@ -4,8 +4,12 @@ using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
-using Recipoke.Api;
-using Recipoke.Api.Features.RecipeImport;
+using Recipoke.Api.Features.Authentication.Api;
+using Recipoke.Api.Features.Authentication.Infrastructure;
+using Recipoke.Api.Features.Recipes;
+using Recipoke.Api.Features.Recipes.Api;
+using Recipoke.Api.Features.RecipeImports;
+using Recipoke.Api.Features.RecipeImports.Api;
 
 if (args.Contains("--hash-password"))
 {
@@ -79,6 +83,7 @@ builder.Services.AddRateLimiter(options =>
     });
 });
 
+builder.Services.AddRecipeOperations();
 builder.Services.AddRecipeImport();
 
 var app = builder.Build();
@@ -119,7 +124,7 @@ await using (var scope = app.Services.CreateAsyncScope())
 
 app.MapGet("/health", () => Results.Ok(new { status = "ok" }));
 
-OwnerAuth.MapEndpoints(app);
+AuthenticationEndpoints.Map(app);
 RecipeEndpoints.Map(app);
 RecipeImportEndpoints.Map(app);
 

@@ -4,7 +4,11 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Migrations;
 using Recipoke.Api;
-using Recipoke.Api.Features.RecipeImport;
+using Recipoke.Api.Features.RecipeImports.Application;
+using Recipoke.Api.Features.RecipeImports.Contracts;
+using Recipoke.Api.Features.RecipeImports.Infrastructure.Social;
+using Recipoke.Api.Features.RecipeImports.Infrastructure.Website;
+using Recipoke.Api.Features.RecipeImports.Infrastructure.TextExtraction;
 
 if (args.FirstOrDefault() == "--process-fixture")
 {
@@ -134,6 +138,8 @@ try
 }
 finally { Microsoft.Data.Sqlite.SqliteConnection.ClearAllPools(); Directory.Delete(directory, true); }
 await SocialImportTests.RunAsync(Check);
+await RecipeOperationTests.RunAsync(Check);
+await ImportPolicyTests.RunAsync(Check);
 Console.WriteLine($"Passed {count} quantity, website/social/text import, process, validation and SQLite migration checks.");
 
 static async Task<List<string?[]>> ReadRows(RecipeDb db)

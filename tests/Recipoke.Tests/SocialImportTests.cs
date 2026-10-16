@@ -2,7 +2,11 @@ using System.Diagnostics;
 using System.Net;
 using System.Text.Json;
 using Microsoft.Extensions.Options;
-using Recipoke.Api.Features.RecipeImport;
+using Recipoke.Api.Features.RecipeImports.Application;
+using Recipoke.Api.Features.RecipeImports.Contracts;
+using Recipoke.Api.Features.RecipeImports.Infrastructure.Social;
+using Recipoke.Api.Features.RecipeImports.Infrastructure.Website;
+using Recipoke.Api.Features.RecipeImports.Infrastructure.TextExtraction;
 
 internal static class SocialImportTests
 {
@@ -137,7 +141,7 @@ internal static class SocialImportTests
         var webHtml = "<script type=\"application/ld+json\">{\"@type\":\"Recipe\",\"name\":\"Website\",\"recipeIngredient\":[\"3-4 Eier\"],\"recipeInstructions\":[\"Cook\"]}</script>";
         var website = new WebsiteRecipeImporter(new(new HttpClient(new FakeHttp(_ => new(HttpStatusCode.OK) { Content = new StringContent(webHtml, System.Text.Encoding.UTF8, "text/html") }))), new());
         var unconfigured = new RecipeTextExtractor(new GeminiRecipeTextModel(new HttpClient(noFetch), Options.Create(new RecipeTextOptions())));
-        var service = new RecipeImportService([social, website], unconfigured);
+        var service = new RecipeImportService([new(social, ImportExecutionPolicy.Social), new(website, ImportExecutionPolicy.Website)], unconfigured);
         check((await service.ImportAsync("https://example.com/recipe")).Draft.Ingredients[0].Quantity == "3-4", "Website import independent of missing Gemini configuration");
         await Failure(() => service.ImportTextAsync(English, null), "ai_not_configured");
         var textService = new RecipeImportService([], extractor);
@@ -146,7 +150,7 @@ internal static class SocialImportTests
         await Failure(() => textService.ImportTextAsync(English, "https://127.0.0.1/"), "invalid_source");
         await Failure(() => textService.ImportTextAsync(English, "https://[::ffff:127.0.0.1]/"), "invalid_source");
         var dnsFailed = new SocialRecipeImporter(new(new HttpClient(noFetch), (_, _) => throw new System.Net.Sockets.SocketException()), retriever, extractor);
-        await Failure(() => new RecipeImportService([dnsFailed, website], extractor).ImportAsync("https://youtu.be/BaW_jenozKc"), "social_retrieval_failed");
+        await Failure(() => new RecipeImportService([new(dnsFailed, ImportExecutionPolicy.Social), new(website, ImportExecutionPolicy.Website)], extractor).ImportAsync("https://youtu.be/BaW_jenozKc"), "social_retrieval_failed");
 
         await TestGeminiAsync(check, Failure);
         await TestProcessesAsync(check, Failure);

@@ -1,5 +1,6 @@
 FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 WORKDIR /src
+COPY backend/Recipoke.Domain/ backend/Recipoke.Domain/
 COPY backend/RecipeAtlas.Api/Recipoke.Api.csproj backend/RecipeAtlas.Api/
 RUN dotnet restore backend/RecipeAtlas.Api/Recipoke.Api.csproj
 COPY backend/RecipeAtlas.Api/ backend/RecipeAtlas.Api/
