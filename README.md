@@ -4,6 +4,8 @@ A private, single-owner recipe API. C# / ASP.NET Core 10, EF Core 10, SQLite.
 
 This package contains the complete backend source, an initial database migration, an integration test, and Docker deployment files. It does not contain a frontend. Run one API instance with a persistent local disk.
 
+Siehe [Architekturüberblick und ADRs](docs/architecture/README.md) für die umgesetzten Entwurfsentscheidungen, Modulgrenzen und Verifikation.
+
 ## Design
 
 | Concern | Choice |
@@ -28,12 +30,12 @@ Work on `main` in the existing `Snegge/RecipeAtlas` checkout. The GitHub reposit
 |---|---|
 | Recipoke.slnx | Solution |
 | backend/RecipeAtlas.Api/Program.cs | Configuration, security, startup |
-| backend/RecipeAtlas.Api/OwnerAuth.cs | Password hashing, login, logout |
-| backend/RecipeAtlas.Api/Models.cs | Database entities and unit definitions |
-| backend/RecipeAtlas.Api/RecipeDb.cs | EF Core configuration |
-| backend/RecipeAtlas.Api/Features/Recipes/RecipeContracts.cs | Request/response types and validation |
-| backend/RecipeAtlas.Api/Features/Recipes/RecipeEndpoints.cs | CRUD, search, and images |
-| backend/RecipeAtlas.Api/Migrations/ | Versioned schema |
+| backend/RecipeAtlas.Api/Features/Authentication/Infrastructure/OwnerAuth.cs | Password hashing, login, logout |
+| backend/Recipoke.Domain/Recipes/ | Database entities and unit definitions |
+| backend/RecipeAtlas.Api/Infrastructure/Persistence/RecipeDb.cs | EF Core configuration |
+| backend/RecipeAtlas.Api/Features/Recipes/Application/RecipeContracts.cs | Request/response types and validation |
+| backend/RecipeAtlas.Api/Features/Recipes/Api/RecipeEndpoints.cs | CRUD, search, and images |
+| backend/RecipeAtlas.Api/Infrastructure/Persistence/Migrations/ | Versioned schema |
 | tests/integration.py | Isolated end-to-end API checks |
 | sample-recipe.json | Working create/update payload |
 | Dockerfile, compose.yaml, deploy/Caddyfile | HTTPS deployment |
@@ -80,7 +82,7 @@ The application packages and local EF tool are pinned to 10.0.12. Future SDK pat
 ## 3. Restore and build
 
 ```sh
-dotnet restore
+dotnet restore --locked-mode
 dotnet tool restore
 dotnet build
 ```
@@ -302,6 +304,7 @@ Requires Python 3, with no additional Python packages:
 
 ```sh
 dotnet build
+dotnet run --no-build --project tests/Recipoke.Tests
 python3 tests/integration.py
 ```
 
@@ -400,6 +403,7 @@ For later model changes, generate and commit a new migration:
 ```sh
 dotnet ef migrations add DescribeYourChange --project backend/RecipeAtlas.Api/Recipoke.Api.csproj
 dotnet build
+dotnet run --no-build --project tests/Recipoke.Tests
 python3 tests/integration.py
 ```
 
