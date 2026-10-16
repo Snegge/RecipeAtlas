@@ -2,7 +2,7 @@ using System.Diagnostics;
 using System.Net;
 using System.Text.Json;
 using Microsoft.Extensions.Options;
-using RecipeAtlas.Api.Features.RecipeImport;
+using Recipoke.Api.Features.RecipeImport;
 
 internal static class SocialImportTests
 {

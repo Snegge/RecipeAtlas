@@ -1,6 +1,8 @@
 # Ingredient quantity strings
 
-Develop these changes on backend `WebsiteScraping` and frontend `WebsiteReipeEctraction` (the existing frontend branch spelling). Deploy both together: the API now accepts and returns strings for `quantity`, not JSON numbers or null. An older frontend cannot send the new contract correctly. A range cannot be represented by the old backend.
+These changes are included in `main` in both repositories; the historical development branches were backend `WebsiteScraping` and frontend `WebsiteReipeEctraction`. Deploy both together: the API now accepts and returns strings for `quantity`, not JSON numbers or null. An older frontend cannot send the new contract correctly. A range cannot be represented by the old backend.
+
+The Recipoke project rename does not require a database migration. The API directory and data location remain unchanged; see [rename compatibility](../README.md#recipoke-rename-compatibility). The migration commands below apply only to databases predating the quantity-string upgrade.
 
 ## Storage and validation
 
@@ -34,7 +36,7 @@ Stop the running API and back up the entire data directory, including cookie key
 From the cloud shell, activate its retained SDK/cache environment:
 
 ```sh
-source /workspace/.recipeatlas-setup/env.sh
+source /workspace/.setup/env.sh
 ```
 
 From `/workspace/RecipeAtlas`:
@@ -44,8 +46,8 @@ dotnet restore
 dotnet tool restore
 dotnet build
 mkdir -p backend/RecipeAtlas.Api/data
-dotnet ef database update --project backend/RecipeAtlas.Api --connection "Data Source=/workspace/RecipeAtlas/backend/RecipeAtlas.Api/data/recipes.db"
-dotnet run --no-build --project backend/RecipeAtlas.Api --launch-profile http
+dotnet ef database update --project backend/RecipeAtlas.Api/Recipoke.Api.csproj --connection "Data Source=/workspace/RecipeAtlas/backend/RecipeAtlas.Api/data/recipes.db"
+dotnet run --no-build --project backend/RecipeAtlas.Api/Recipoke.Api.csproj --launch-profile http
 ```
 
 Keep the existing `Owner:PasswordHash` user secret or `Owner__PasswordHash` environment binding. It is not changed by this migration. EF's design-time factory points at `design-time.db`, so the explicit connection above matters. API startup also applies pending migrations to its configured database automatically.
@@ -67,10 +69,10 @@ From `/workspace/RecipeAtlas`:
 
 ```sh
 dotnet build
-dotnet run --project tests/RecipeAtlas.Tests
+dotnet run --project tests/Recipoke.Tests
 python3 tests/integration.py
 python3 tests/check_shared_contracts.py ../RecipeAtlasFrontend
-dotnet ef migrations has-pending-model-changes --project backend/RecipeAtlas.Api
+dotnet ef migrations has-pending-model-changes --project backend/RecipeAtlas.Api/Recipoke.Api.csproj
 ```
 
 The C# console regression runner has no additional test-package dependencies. It exercises quantity/ingredient cases, the actual JSON-LD extractor (including PropertyValue), normal validation and EF migration of an old SQLite database under German culture. The Python integration suite starts isolated API instances and checks string/range save/reload, validation, auth, images and persistence after restart. The cross-repository check ensures the unit definition and test-case copies agree; update them in both repositories together.

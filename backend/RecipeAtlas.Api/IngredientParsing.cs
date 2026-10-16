@@ -2,7 +2,7 @@ using System.Reflection;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 
-namespace RecipeAtlas.Api;
+namespace Recipoke.Api;
 
 public sealed record IngredientDraft(string Name, string Quantity, string Unit, string? Note,
     string OriginalText, bool RequiresReview, string? ReviewReason);
@@ -12,7 +12,7 @@ public sealed record MeasurementDefinitions(MeasurementUnit[] Definitions, strin
 public static class UnitNormalization
 {
     private static readonly MeasurementDefinitions Data = JsonSerializer.Deserialize<MeasurementDefinitions>(
-        Assembly.GetExecutingAssembly().GetManifestResourceStream("RecipeAtlas.Api.MeasurementUnits.json")!,
+        Assembly.GetExecutingAssembly().GetManifestResourceStream("Recipoke.Api.MeasurementUnits.json")!,
         new JsonSerializerOptions { PropertyNameCaseInsensitive = true })!;
     private static readonly Dictionary<string, MeasurementUnit> Aliases = Data.Definitions
         .SelectMany(u => u.Aliases.Select(a => (a, u))).ToDictionary(x => x.a, x => x.u, StringComparer.OrdinalIgnoreCase);

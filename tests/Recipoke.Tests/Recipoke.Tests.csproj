@@ -2,11 +2,13 @@
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <TargetFramework>net10.0</TargetFramework>
+    <RootNamespace>Recipoke.Tests</RootNamespace>
+    <AssemblyName>Recipoke.Tests</AssemblyName>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
   </PropertyGroup>
   <ItemGroup>
-    <ProjectReference Include="../../backend/RecipeAtlas.Api/RecipeAtlas.Api.csproj" />
+    <ProjectReference Include="../../backend/RecipeAtlas.Api/Recipoke.Api.csproj" />
     <None Include="../fixtures/quantity-cases.json" Link="quantity-cases.json" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 </Project>

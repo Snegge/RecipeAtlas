@@ -1,6 +1,6 @@
 using System.Net;
 
-namespace RecipeAtlas.Api.Features.RecipeImport;
+namespace Recipoke.Api.Features.RecipeImport;
 
 public sealed class SocialUrlResolver(HttpClient httpClient, Func<Uri, CancellationToken, Task> validateHost)
 {

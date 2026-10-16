@@ -1,6 +1,6 @@
 using System.Net.Http.Headers;
 
-namespace RecipeAtlas.Api.Features.RecipeImport;
+namespace Recipoke.Api.Features.RecipeImport;
 
 public static class RecipeImportRegistration
 {
@@ -13,7 +13,7 @@ public static class RecipeImportRegistration
             client.Timeout = Timeout.InfiniteTimeSpan;
 
             client.DefaultRequestHeaders.UserAgent.ParseAdd(
-                "RecipeAtlas/1.0");
+                "Recipoke/1.0");
 
             client.DefaultRequestHeaders.Accept.Add(
                 new MediaTypeWithQualityHeaderValue("text/html"));
@@ -26,7 +26,7 @@ public static class RecipeImportRegistration
         services.AddHttpClient("SocialRedirects", client =>
         {
             client.Timeout = Timeout.InfiniteTimeSpan;
-            client.DefaultRequestHeaders.UserAgent.ParseAdd("RecipeAtlas/1.0");
+            client.DefaultRequestHeaders.UserAgent.ParseAdd("Recipoke/1.0");
         }).ConfigurePrimaryHttpMessageHandler(SafeWebsiteClient.CreateHandler);
         services.AddScoped(provider => new SocialUrlResolver(
             provider.GetRequiredService<IHttpClientFactory>().CreateClient("SocialRedirects"),

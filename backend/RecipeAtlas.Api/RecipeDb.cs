@@ -1,7 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Design;
 
-namespace RecipeAtlas.Api;
+namespace Recipoke.Api;
 
 public sealed class RecipeDb(DbContextOptions<RecipeDb> options) : DbContext(options)
 {

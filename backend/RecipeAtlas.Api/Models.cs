@@ -1,4 +1,4 @@
-namespace RecipeAtlas.Api;
+namespace Recipoke.Api;
 
 public sealed class Recipe
 {

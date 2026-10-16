@@ -2,7 +2,7 @@ using System.Net;
 using System.Net.Sockets;
 using System.Text;
 
-namespace RecipeAtlas.Api.Features.RecipeImport;
+namespace Recipoke.Api.Features.RecipeImport;
 
 public sealed record DownloadedRecipePage(string Html, Uri FinalUrl);
 

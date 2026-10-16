@@ -1,9 +1,6 @@
 # Description-only social and text import
 
-Backend branch: `feature/social-description-import`, based on `WebsiteScraping`.
-Use the matching frontend branch, based on the existing `WebsiteReipeEctraction`
-branch. `WebsiteRecipeExtraction` was not present on the remote. Neither base
-branch is modified by this feature. No new database migration is needed.
+The feature is included in `main` in both repositories. Historical development used `feature/social-description-import`, based on backend `WebsiteScraping` and frontend `WebsiteReipeEctraction`. Use the selected `main` checkout; no feature-branch merge or new migration is needed. See [Recipoke rename compatibility](../README.md#recipoke-rename-compatibility) for retained authentication, configuration and data identifiers.
 
 The existing import endpoint accepts recipe website links, public YouTube videos
 and Shorts, TikTok videos, Instagram Reels, or pasted text. Social import reads
@@ -26,8 +23,6 @@ setup/image-build time, never downloaded or updated by an import request.
 From the backend checkout, Bash:
 
 ```bash
-git fetch origin WebsiteScraping feature/social-description-import
-git switch feature/social-description-import
 dotnet restore
 dotnet tool restore
 python3 -m venv .tools/yt-dlp
@@ -39,7 +34,7 @@ export RecipeText__Model=gemini-flash-latest
 read -r -s -p 'Gemini API key: ' RecipeText__ApiKey; printf '\n'
 export RecipeText__ApiKey
 dotnet build
-dotnet run --project backend/RecipeAtlas.Api --launch-profile http
+dotnet run --project backend/RecipeAtlas.Api/Recipoke.Api.csproj --launch-profile http
 ```
 
 On PowerShell 7, replace the Python/configuration lines with:
@@ -81,8 +76,6 @@ in this environment because no task credentials were configured.
 From the matching frontend checkout:
 
 ```bash
-git fetch origin WebsiteReipeEctraction feature/social-description-import
-git switch feature/social-description-import
 npm ci
 npm test
 npm run build
@@ -166,14 +159,14 @@ customary and requiring review. No density-free cup-to-gram conversion.
 ```bash
 # backend, no network or paid model calls in the normal suite
 dotnet build
-dotnet run --no-build --project tests/RecipeAtlas.Tests
+dotnet run --no-build --project tests/Recipoke.Tests
 python3 tests/integration.py
 python3 tests/check_shared_contracts.py ../RecipeAtlasFrontend
 # frontend
 npm test
 npm run build
 # separate metadata-only live smoke; use any public test links
-dotnet run --no-build --project tests/RecipeAtlas.Tests -- --live-social \
+dotnet run --no-build --project tests/Recipoke.Tests -- --live-social \
   'https://www.youtube.com/watch?v=BaW_jenozKc' \
   'https://www.tiktok.com/@leenabhushan/video/6748451240264420610' \
   'https://www.instagram.com/reel/Chunk8-jurw/'

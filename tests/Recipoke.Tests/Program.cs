@@ -3,8 +3,8 @@ using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Migrations;
-using RecipeAtlas.Api;
-using RecipeAtlas.Api.Features.RecipeImport;
+using Recipoke.Api;
+using Recipoke.Api.Features.RecipeImport;
 
 if (args.FirstOrDefault() == "--process-fixture")
 {
@@ -87,7 +87,7 @@ var recipe = new Recipe(); RecipeMapping.Apply(recipe, validInput);
 Check(recipe.Ingredients[0].Quantity == "3-4", "Range normalized at save");
 
 // Migrate a real SQLite database at the old migration with representative invariant decimals.
-var directory = Path.Combine(Path.GetTempPath(), "recipeatlas-migration-" + Guid.NewGuid());
+var directory = Path.Combine(Path.GetTempPath(), "recipoke-migration-" + Guid.NewGuid());
 Directory.CreateDirectory(directory);
 try
 {

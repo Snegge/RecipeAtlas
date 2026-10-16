@@ -1,4 +1,4 @@
-# RecipeAtlas backend
+# Recipoke backend
 
 A private, single-owner recipe API. C# / ASP.NET Core 10, EF Core 10, SQLite.
 
@@ -20,27 +20,46 @@ No separate database server is needed. Recipes, ingredients, steps, and images a
 
 The API returns small paginated cards for the recipe list. It downloads ingredients and steps only for a detail request, and image bytes only for an image request. Responsive layouts, touch controls, and image resizing belong in your frontend.
 
-## 1. Put these files into your existing repository
+## 1. Use the existing checkout
 
-Extract the ZIP. Copy the contents of its `RecipeAtlas` folder into your existing empty Git checkout. Include `.config`, `.gitignore`, `.dockerignore`, and `.env.example`.
-
-Do not run `git init` again. The resulting repository root contains:
+Work on `main` in the existing `Snegge/RecipeAtlas` checkout. The GitHub repository name, remote URL and local checkout name have not changed. The repository root contains:
 
 | Path | Purpose |
 |---|---|
-| RecipeAtlas.slnx | Solution |
+| Recipoke.slnx | Solution |
 | backend/RecipeAtlas.Api/Program.cs | Configuration, security, startup |
 | backend/RecipeAtlas.Api/OwnerAuth.cs | Password hashing, login, logout |
 | backend/RecipeAtlas.Api/Models.cs | Database entities and unit definitions |
 | backend/RecipeAtlas.Api/RecipeDb.cs | EF Core configuration |
-| backend/RecipeAtlas.Api/Contracts.cs | Request/response types and validation |
-| backend/RecipeAtlas.Api/RecipeEndpoints.cs | CRUD, search, and images |
+| backend/RecipeAtlas.Api/Features/Recipes/RecipeContracts.cs | Request/response types and validation |
+| backend/RecipeAtlas.Api/Features/Recipes/RecipeEndpoints.cs | CRUD, search, and images |
 | backend/RecipeAtlas.Api/Migrations/ | Versioned schema |
 | tests/integration.py | Isolated end-to-end API checks |
 | sample-recipe.json | Working create/update payload |
 | Dockerfile, compose.yaml, deploy/Caddyfile | HTTPS deployment |
 
 Run the following commands from that repository root unless stated otherwise.
+
+## Recipoke rename compatibility
+
+The solution is `Recipoke.slnx`; the API project, assembly and root namespace are `Recipoke.Api`. The console regression project is `tests/Recipoke.Tests/Recipoke.Tests.csproj`. No API route, JSON property, database table or migration ID changed, and no rename migration is required. Migration namespaces/model type metadata were updated to match the new CLR namespace; the existing SQL history remains unchanged.
+
+| Retained identifier | Reason |
+|---|---|
+| `backend/RecipeAtlas.Api/` | Keep the content root stable, including default `data/` and any configured relative `DataDirectory`. The project file inside is now `Recipoke.Api.csproj`. Do not move or recreate existing data. |
+| `RecipeAtlas.Session`, cookie path `/api`, authentication scheme | Keep existing browser sessions usable. |
+| Data-protection application name `RecipeAtlas`, `data/keys/` | Continue decrypting existing cookies with the same key ring. Keep keys together with the database. |
+| `RecipeAtlas.LocalDevelopment` user-secrets ID | Reuse the existing owner password hash and optional model configuration. |
+| `X-RecipeAtlas: 1` | Stable browser write/CSRF contract, shared with the frontend and external clients. No new header alias is introduced. |
+| `Owner:PasswordHash` / `Owner__PasswordHash`, `DataDirectory`, `RecipeText`, `SocialImport` | Existing application configuration remains authoritative. Normal ASP.NET Core provider precedence is unchanged (command line, environment, development user secrets, JSON). |
+| `RECIPE_ATLAS_PASSWORD_HASH`, `RECIPE_ATLAS_DOMAIN` | Existing Compose `.env` and Caddy deployments continue to work. No new deployment variable aliases are introduced. |
+| `recipes.db`, existing migration IDs and `__EFMigrationsHistory` | Preserve recipes, ingredients, steps, photos and migration history. |
+| `recipe_data`, `caddy_data`, `caddy_config`, `/app/data` | Preserve deployment volumes and key/database mounts. Keep the existing Compose project name and checkout directory. |
+| `Snegge/RecipeAtlas`, sibling `RecipeAtlasFrontend` paths | GitHub repositories/remotes and checkout locations are unchanged. |
+
+The integration runner accepts `RECIPOKE_DOTNET`; if it is explicitly set it takes precedence over legacy `RECIPE_ATLAS_DOTNET`, otherwise the legacy value is used, then `dotnet`. An explicitly empty override is invalid, rather than silently falling back. This runner alias does not alter application configuration. There are no application localStorage, sessionStorage or IndexedDB branding keys to migrate. Images remain database blobs exposed by the same `/api/recipes/{id}/image` routes.
+
+Before upgrading an existing deployment, back up its data and keys using the existing procedure. The rename itself needs no database update. Rebuild both applications and use the updated Docker entry point `Recipoke.Api.dll`; do not rename volumes, the Compose project or the API content-root directory.
 
 ## 2. Install .NET 10 SDK
 
@@ -73,13 +92,13 @@ The EF tool is local to this repository. You do not need a global dotnet-ef inst
 Generate a hash. Enter a password of at least 12 characters when prompted. Nothing is echoed while you type.
 
 ```sh
-dotnet run --project backend/RecipeAtlas.Api -- --hash-password
+dotnet run --project backend/RecipeAtlas.Api/Recipoke.Api.csproj -- --hash-password
 ```
 
 Copy only the generated hash into this command:
 
 ```sh
-dotnet user-secrets set "Owner:PasswordHash" "PASTE_HASH_HERE" --project backend/RecipeAtlas.Api
+dotnet user-secrets set "Owner:PasswordHash" "PASTE_HASH_HERE" --project backend/RecipeAtlas.Api/Recipoke.Api.csproj
 ```
 
 The hash is stored outside the repository in your local .NET user secrets. User secrets are a development convenience, not encrypted storage. Production uses a separate environment variable. There is no username, registration endpoint, or password reset email.
@@ -89,7 +108,7 @@ To change the password, generate a new hash, replace the configured hash, and re
 ## 5. Start the API
 
 ```sh
-dotnet run --project backend/RecipeAtlas.Api --launch-profile http
+dotnet run --project backend/RecipeAtlas.Api/Recipoke.Api.csproj --launch-profile http
 ```
 
 Open http://localhost:5080/health. Expect `{"status":"ok"}`.
@@ -370,7 +389,7 @@ docker compose start api
 ```sh
 git add .
 git status
-git commit -m "Add RecipeAtlas backend"
+git commit -m "Add Recipoke backend"
 git push
 ```
 
@@ -379,7 +398,7 @@ Confirm that `.env`, `login.json`, `cookies.txt`, and the `data` directory are a
 For later model changes, generate and commit a new migration:
 
 ```sh
-dotnet ef migrations add DescribeYourChange --project backend/RecipeAtlas.Api
+dotnet ef migrations add DescribeYourChange --project backend/RecipeAtlas.Api/Recipoke.Api.csproj
 dotnet build
 python3 tests/integration.py
 ```

@@ -3,7 +3,7 @@ using System.Text.Json;
 using System.Text.RegularExpressions;
 using AngleSharp.Html.Parser;
 
-namespace RecipeAtlas.Api.Features.RecipeImport;
+namespace Recipoke.Api.Features.RecipeImport;
 
 public sealed class JsonLdRecipeExtractor
 {
@@ -149,7 +149,7 @@ public sealed class JsonLdRecipeExtractor
             steps.Any(x => x.Length > 4000))
         {
             warnings.Add(
-                "Some imported fields exceed RecipeAtlas save limits. " +
+                "Some imported fields exceed Recipoke save limits. " +
                 "Shorten them in the editor.");
         }
 

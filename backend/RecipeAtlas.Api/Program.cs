@@ -4,8 +4,8 @@ using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
-using RecipeAtlas.Api;
-using RecipeAtlas.Api.Features.RecipeImport;
+using Recipoke.Api;
+using Recipoke.Api.Features.RecipeImport;
 
 if (args.Contains("--hash-password"))
 {
@@ -25,6 +25,7 @@ var connection = new SqliteConnectionStringBuilder
 builder.WebHost.ConfigureKestrel(options => options.Limits.MaxRequestBodySize = 6 * 1024 * 1024);
 builder.Services.AddDbContext<RecipeDb>(options => options.UseSqlite(connection));
 builder.Services.AddProblemDetails();
+// Compatibility identity: existing cookie keys must survive the Recipoke rename.
 builder.Services.AddDataProtection().SetApplicationName("RecipeAtlas")
     .PersistKeysToFileSystem(new DirectoryInfo(Path.Combine(dataDirectory, "keys")));
 
@@ -37,7 +38,7 @@ builder.Services.AddSingleton(owner);
 builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
     .AddCookie(options =>
     {
-        options.Cookie.Name = "RecipeAtlas.Session";
+        options.Cookie.Name = "RecipeAtlas.Session"; // Preserve existing browser sessions.
         options.Cookie.Path = "/api";
         options.Cookie.HttpOnly = true;
         options.Cookie.SameSite = SameSiteMode.Strict;

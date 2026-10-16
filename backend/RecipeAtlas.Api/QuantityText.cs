@@ -2,7 +2,7 @@ using System.Globalization;
 using System.Numerics;
 using System.Text.RegularExpressions;
 
-namespace RecipeAtlas.Api;
+namespace Recipoke.Api;
 
 // Exact rationals avoid losing fractional precision or accumulating rounding error.
 public readonly record struct Rational(BigInteger Numerator, BigInteger Denominator)

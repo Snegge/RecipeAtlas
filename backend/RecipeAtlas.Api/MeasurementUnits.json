@@ -577,7 +577,7 @@
         "teaspoons"
       ],
       "factor": "1",
-      "reviewReason": "Assumed RecipeAtlas metric spoon (5 ml); confirm the source."
+      "reviewReason": "Assumed Recipoke metric spoon (5 ml); confirm the source."
     },
     {
       "code": "tbsp",
@@ -588,7 +588,7 @@
         "tablespoons"
       ],
       "factor": "1",
-      "reviewReason": "Assumed RecipeAtlas metric spoon (15 ml); confirm the source."
+      "reviewReason": "Assumed Recipoke metric spoon (15 ml); confirm the source."
     },
     {
       "code": "ml",

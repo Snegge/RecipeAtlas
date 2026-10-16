@@ -3,7 +3,7 @@ using Newtonsoft.Json;
 using YoutubeDLSharp.Metadata;
 using YoutubeDLSharp.Options;
 
-namespace RecipeAtlas.Api.Features.RecipeImport;
+namespace Recipoke.Api.Features.RecipeImport;
 
 public sealed class SocialImportOptions
 {

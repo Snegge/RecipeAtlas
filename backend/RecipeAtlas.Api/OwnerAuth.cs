@@ -6,7 +6,7 @@ using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Options;
 
-namespace RecipeAtlas.Api;
+namespace Recipoke.Api;
 
 public sealed record LoginInput(string? Password);
 

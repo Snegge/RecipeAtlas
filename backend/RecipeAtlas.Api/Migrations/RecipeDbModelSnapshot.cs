@@ -3,11 +3,11 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
-using RecipeAtlas.Api;
+using Recipoke.Api;
 
 #nullable disable
 
-namespace RecipeAtlas.Api.Migrations
+namespace Recipoke.Api.Migrations
 {
     [DbContext(typeof(RecipeDb))]
     partial class RecipeDbModelSnapshot : ModelSnapshot
@@ -17,7 +17,7 @@ namespace RecipeAtlas.Api.Migrations
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "10.0.12");
 
-            modelBuilder.Entity("RecipeAtlas.Api.Ingredient", b =>
+            modelBuilder.Entity("Recipoke.Api.Ingredient", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -55,7 +55,7 @@ namespace RecipeAtlas.Api.Migrations
                     b.ToTable("Ingredient");
                 });
 
-            modelBuilder.Entity("RecipeAtlas.Api.Recipe", b =>
+            modelBuilder.Entity("Recipoke.Api.Recipe", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -90,7 +90,7 @@ namespace RecipeAtlas.Api.Migrations
                     b.ToTable("Recipes");
                 });
 
-            modelBuilder.Entity("RecipeAtlas.Api.RecipeImage", b =>
+            modelBuilder.Entity("Recipoke.Api.RecipeImage", b =>
                 {
                     b.Property<Guid>("RecipeId")
                         .HasColumnType("TEXT");
@@ -108,7 +108,7 @@ namespace RecipeAtlas.Api.Migrations
                     b.ToTable("Images");
                 });
 
-            modelBuilder.Entity("RecipeAtlas.Api.RecipeStep", b =>
+            modelBuilder.Entity("Recipoke.Api.RecipeStep", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -132,34 +132,34 @@ namespace RecipeAtlas.Api.Migrations
                     b.ToTable("RecipeStep");
                 });
 
-            modelBuilder.Entity("RecipeAtlas.Api.Ingredient", b =>
+            modelBuilder.Entity("Recipoke.Api.Ingredient", b =>
                 {
-                    b.HasOne("RecipeAtlas.Api.Recipe", null)
+                    b.HasOne("Recipoke.Api.Recipe", null)
                         .WithMany("Ingredients")
                         .HasForeignKey("RecipeId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
                 });
 
-            modelBuilder.Entity("RecipeAtlas.Api.RecipeImage", b =>
+            modelBuilder.Entity("Recipoke.Api.RecipeImage", b =>
                 {
-                    b.HasOne("RecipeAtlas.Api.Recipe", null)
+                    b.HasOne("Recipoke.Api.Recipe", null)
                         .WithOne("Image")
-                        .HasForeignKey("RecipeAtlas.Api.RecipeImage", "RecipeId")
+                        .HasForeignKey("Recipoke.Api.RecipeImage", "RecipeId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
                 });
 
-            modelBuilder.Entity("RecipeAtlas.Api.RecipeStep", b =>
+            modelBuilder.Entity("Recipoke.Api.RecipeStep", b =>
                 {
-                    b.HasOne("RecipeAtlas.Api.Recipe", null)
+                    b.HasOne("Recipoke.Api.Recipe", null)
                         .WithMany("Steps")
                         .HasForeignKey("RecipeId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
                 });
 
-            modelBuilder.Entity("RecipeAtlas.Api.Recipe", b =>
+            modelBuilder.Entity("Recipoke.Api.Recipe", b =>
                 {
                     b.Navigation("Image");
 

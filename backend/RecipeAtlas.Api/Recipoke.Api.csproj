@@ -1,8 +1,11 @@
 <Project Sdk="Microsoft.NET.Sdk.Web">
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
+    <RootNamespace>Recipoke.Api</RootNamespace>
+    <AssemblyName>Recipoke.Api</AssemblyName>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
+    <!-- Keep the existing development password/model configuration. -->
     <UserSecretsId>RecipeAtlas.LocalDevelopment</UserSecretsId>
     <AllowMissingPrunePackageData>true</AllowMissingPrunePackageData>
   </PropertyGroup>

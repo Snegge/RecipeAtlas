@@ -3,7 +3,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
 
-namespace RecipeAtlas.Api.Migrations
+namespace Recipoke.Api.Migrations
 {
     /// <inheritdoc />
     public partial class InitialCreate : Migration

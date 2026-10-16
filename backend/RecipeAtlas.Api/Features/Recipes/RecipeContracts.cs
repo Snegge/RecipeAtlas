@@ -1,4 +1,4 @@
-namespace RecipeAtlas.Api;
+namespace Recipoke.Api;
 
 public sealed record IngredientInput(string? Name, string? Quantity, string? Unit, string? Note);
 public sealed record RecipeInput(

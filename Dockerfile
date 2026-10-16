@@ -1,9 +1,9 @@
 FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 WORKDIR /src
-COPY backend/RecipeAtlas.Api/RecipeAtlas.Api.csproj backend/RecipeAtlas.Api/
-RUN dotnet restore backend/RecipeAtlas.Api/RecipeAtlas.Api.csproj
+COPY backend/RecipeAtlas.Api/Recipoke.Api.csproj backend/RecipeAtlas.Api/
+RUN dotnet restore backend/RecipeAtlas.Api/Recipoke.Api.csproj
 COPY backend/RecipeAtlas.Api/ backend/RecipeAtlas.Api/
-RUN dotnet publish backend/RecipeAtlas.Api/RecipeAtlas.Api.csproj -c Release --no-restore -o /out
+RUN dotnet publish backend/RecipeAtlas.Api/Recipoke.Api.csproj -c Release --no-restore -o /out
 
 FROM node:24.19.0-bookworm-slim AS javascript
 
@@ -24,4 +24,4 @@ ENV DataDirectory=/app/data
 ENV SocialImport__YtDlpPath=/opt/yt-dlp/bin/yt-dlp
 ENV SocialImport__NodePath=/usr/local/bin/node
 EXPOSE 8080
-ENTRYPOINT ["dotnet", "RecipeAtlas.Api.dll"]
+ENTRYPOINT ["dotnet", "Recipoke.Api.dll"]

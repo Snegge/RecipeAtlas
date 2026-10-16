@@ -1,4 +1,4 @@
-namespace RecipeAtlas.Api.Features.RecipeImport;
+namespace Recipoke.Api.Features.RecipeImport;
 
 // Website extraction and normal save validation use the same quantity grammar.
 public static class IngredientTextParser

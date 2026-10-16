@@ -1,6 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 
-namespace RecipeAtlas.Api;
+namespace Recipoke.Api;
 
 public static class RecipeEndpoints
 {

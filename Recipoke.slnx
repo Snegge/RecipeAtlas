@@ -1,0 +1,8 @@
+<Solution>
+  <Folder Name="/backend/">
+    <Project Path="backend/RecipeAtlas.Api/Recipoke.Api.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Recipoke.Tests/Recipoke.Tests.csproj" />
+  </Folder>
+</Solution>

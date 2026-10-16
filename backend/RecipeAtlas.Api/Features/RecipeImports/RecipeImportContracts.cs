@@ -1,4 +1,4 @@
-namespace RecipeAtlas.Api.Features.RecipeImport;
+namespace Recipoke.Api.Features.RecipeImport;
 
 public sealed record RecipeImportRequest(string? Url, string? Text = null);
 

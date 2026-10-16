@@ -1,7 +1,7 @@
 using Microsoft.AspNetCore.WebUtilities;
 using System.Text.RegularExpressions;
 
-namespace RecipeAtlas.Api.Features.RecipeImport;
+namespace Recipoke.Api.Features.RecipeImport;
 
 public sealed record SocialSource(string Platform, Uri Url, string? Id, bool IsShortLink);
 
