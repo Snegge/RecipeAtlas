@@ -7,6 +7,8 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # Pinned pre-concurrency baseline for the actual migration-chain upgrade.
       - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '10.0.401'
@@ -18,6 +20,9 @@ jobs:
       - run: python3 tests/integration.py
       - run: python3 tests/accounts_integration.py
       - run: python3 tests/ui_support_integration.py
+      - run: python3 tests/concurrency_integration.py
+      - run: python3 scripts/publish_pre_concurrency.py /tmp/recipoke-before-concurrency
+      - run: python3 tests/concurrency_upgrade.py /tmp/recipoke-before-concurrency/Recipoke.Api.dll
       - run: python3 tests/test_contract_paths.py
       - run: dotnet ef migrations list --no-connect --no-build --project backend/RecipeAtlas.Api
       - run: dotnet ef migrations has-pending-model-changes --no-build --project backend/RecipeAtlas.Api

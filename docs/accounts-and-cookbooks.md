@@ -165,3 +165,7 @@ dotnet run --project backend/RecipeAtlas.Api --launch-profile http
 Without signing in, `curl -i http://localhost:5080/api/cookbook-invitations` should return **401**, rather than 404, on a bootstrapped current backend. In the signed-in browser the same request through port 4200 should return 200 and an array (possibly empty). A backend awaiting its initial setup returns 503. These read-only checks do not alter membership or bootstrap an account.
 
 The frontend now reports a missing consent API explicitly and checks its availability before sending either a member invitation or initial cookbook invitations. It does not fall back to immediate membership. Previously accepted members, including people added while an older binary was running, remain accepted. For a deliberate invitation test, the owner must remove that existing membership and then send a new invitation; this update never revokes access automatically.
+
+## Step 6: Versionsverträge
+
+Die Mutation-Beispiele dieses Account-Einführungsdokuments stammen aus der früheren Vertragsfassung. Für vorhandene Rezepte/Cookbooks/Mitglieder sind jetzt `expectedVersion` bzw. ein starkes `If-Match` verpflichtend. Aktuelle Antwortformen, Deployment/Backup und Konfliktdemonstration: [Shared-Editing-Runbook](shared-editing.md), [ADR 014](architecture/adr/014-optimistic-concurrency.md).

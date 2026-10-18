@@ -4,7 +4,7 @@ Invitation-only recipe application: ASP.NET Core 10, Identity cookies, EF Core 1
 
 The backend remains a feature-organised monolith with an independent domain assembly. Application operations use EF Core directly; endpoints handle HTTP. See the German [architecture guide](docs/architecture/README.md), [account/cookbook decisions](docs/architecture/adr/009-identity-sessions.md) and [upgrade/runbook](docs/accounts-and-cookbooks.md).
 
-Both repositories must use `feature/accounts-and-cookbooks` together. This feature changes authentication and recipe routes and adds a migration; it is not a rename-only upgrade.
+Both repositories must use `feature/shared-editing` together. This step adds aggregate versions and required mutation preconditions. Deploy both applications together and reload existing browser tabs. Authentication, routes and data paths are preserved; see the [concurrency upgrade runbook](docs/shared-editing.md).
 
 ## Local setup
 
@@ -129,7 +129,7 @@ Bootstrap uses a terminal prompt. Recover an administrator with `docker compose 
 
 See [quantity strings/conversions](docs/quantity-strings.md) and [description-only social/text imports](docs/social-description-import.md). Website imports work without AI configuration. Social/text extraction uses the existing optional Gemini configuration and pinned yt-dlp setup. No new import capability is added by account sharing. External process networking still needs deployment-level egress isolation; HttpClient destination checks do not sandbox yt-dlp.
 
-Deferred: account deletion/promotion UI, ownership transfer, password-reset delivery, shopping lists, cooking sessions, offline sync and general edit concurrency. Existing recipe edits remain last-write-wins.
+Deferred: account deletion/promotion UI, ownership transfer, password-reset delivery, shopping lists, cooking sessions, offline sync. Safe recipe/cookbook concurrency now uses explicit versions and conflict review; see [shared editing](docs/shared-editing.md).
 
 ## Mobile UI, profiles and membership consent
 
@@ -144,3 +144,5 @@ See [ADR 013](docs/architecture/adr/013-cookbook-consent-and-profiles.md). Optio
 ```sh
 python3 tests/ui_upgrade.py /path/to/pre-ui-publish/Recipoke.Api.dll
 ```
+
+Concurrent editing and the coordinated version-contract upgrade are documented in [the German runbook](docs/shared-editing.md) and [ADR 014](docs/architecture/adr/014-optimistic-concurrency.md). Old browser tabs must reload after deployment.

@@ -216,7 +216,7 @@ Die Workflows in beiden Repositories haben nur `contents: read`. Backend-CI füh
 
 1. Vorhandenen HTTP-Vertrag und Autorisierung festlegen; keine Domain-Entitäten direkt serialisieren.
 2. Eine konkrete Operation in `Features/Recipes/Application` anlegen; fachliche Mengenregeln aus Domain wiederverwenden.
-3. Existenz, Voraussetzungen und Fehlerreihenfolge explizit prüfen. Die Operation besitzt ihre Persistenz; bei Writes startet die Transaktion vor `CookbookAccess.RequireAsync` und umfasst Prüfung und Commit. Reads filtern zusätzlich nach der Cookbook-ID. Die Benutzer-ID kommt aus `ICurrentUser`, nicht aus Commands.
+3. Bei Änderungen vorhandener Aggregate den erwarteten Token verlangen und mit `ConcurrencyWrites.Advance`/`SaveAsync` atomar durchsetzen; neue Version zurückgeben. Existenz, Voraussetzungen und Fehlerreihenfolge explizit prüfen. Die Operation besitzt ihre Persistenz; bei Writes startet die Transaktion vor `CookbookAccess.RequireAsync` und umfasst Prüfung und Commit. Reads filtern zusätzlich nach der Cookbook-ID. Die Benutzer-ID kommt aus `ICurrentUser`, nicht aus Commands.
 4. Einen dünnen Endpunkt und die Registrierung ergänzen. Ergebnisdaten bleiben frei von `IResult`/`HttpContext`.
 5. Mit echtem SQLite Erfolg, Nichtexistenz und atomare Fehlerfälle testen; HTTP-Vertrag, OpenAPI-Snapshot und Frontend-Check aktualisieren.
 
@@ -242,7 +242,7 @@ Die Workflows in beiden Repositories haben nur `contents: read`. Backend-CI füh
 
 ## Grenzen und vertagte Entscheidungen
 
-Globale Loginbegrenzung, Last-write-wins, eine SQLite-Instanz, DB-Bildblobs, Startup-Migrationen und speicherinterne Entwürfe bleiben bewusste Grenzen. Multi-User/Cookbooks sind jetzt implementiert; Ownership-Transfer, Account-Löschung, E-Mail-Reset, Concurrency-Tokens, Object Storage, PWA und Offline-Synchronisation bleiben außerhalb des Umfangs. Ein Worker oder zusätzliche Projekte sind erst bei konkreter Last, Isolation oder Teamverantwortung zu bewerten. Live-Provider-Zuverlässigkeit, vollständige Browserdarstellung, vollständige Container-Builds und eine deploymentseitige Egress-Policy sind separat zu prüfen.
+Globale Loginbegrenzung, eine SQLite-Instanz, DB-Bildblobs, Startup-Migrationen und speicherinterne Entwürfe bleiben bewusste Grenzen. Multi-User/Cookbooks sind jetzt implementiert; Ownership-Transfer, Account-Löschung, E-Mail-Reset, Object Storage, PWA und Offline-Synchronisation bleiben außerhalb des Umfangs. Ein Worker oder zusätzliche Projekte sind erst bei konkreter Last, Isolation oder Teamverantwortung zu bewerten. Live-Provider-Zuverlässigkeit, vollständige Browserdarstellung, vollständige Container-Builds und eine deploymentseitige Egress-Policy sind separat zu prüfen.
 
 ## Account-/Cookbook-Verantwortung und Prinzipien
 
@@ -272,3 +272,25 @@ Die ursprünglichen Prüfzahlen oben beschreiben den Account-Auslieferungsstand 
 
 
 Verifikation des UI-/Consent-Updates: 621 Console-/Architekturprüfungen, 63 bestehende, 159 Account- und 78 zusätzliche HTTP-Prüfungen (zusammen 300), 175 Frontendtests und 163 Transportprüfungen. Migrationserkennung und Model-Snapshot stimmen überein. Beide optionalen Alt-Binär-Upgrades bestanden: vom Single-Owner-Stand und vom bisherigen Accounts-Stand. Der erweiterte Chromium-Smoke bestand mit 35 Prüfungen bei 320/390/1280px; ausgewählte synthetische Screenshots wurden visuell geprüft. CI-Ausführung auf GitHub, physische Mobilgeräte, TLS/Containerbetrieb und Live-Provider bleiben separate Nachweise.
+
+## Step 6: konkurrierende Bearbeitung
+
+[ADR 014](adr/014-optimistic-concurrency.md) ersetzt die bisherige Last-write-wins-Grenze durch unabhängige Recipe-/Cookbook-Versionen und EF-CAS. [Runbook und Nachweise](../shared-editing.md) beschreiben Vertragsänderungen, den echten Vorversions-Upgrade-Test und die Zwei-Sitzungen-Demonstration. Application-Operationen besitzen weiterhin atomare Transaktionen; `ConcurrencyWrites` bündelt nur technische CAS-/Rollback-/Recheck-Schritte. `ReadSnapshot` sichert die Version/Inhalt-Kohärenz von Split-Reads. Domain kennt weder HTTP-Preconditions noch EF. Frontend-Review ist komponentengebunden, der geteilte Dialog enthält nur Darstellung/Quellenauswahl. Keine generische Konflikt-Engine oder neuen Projekte.
+
+### Aktuelle Abhängigkeiten der Konkurrenzkontrolle
+
+```mermaid
+flowchart LR
+  HTTP[Recipes/Cookbooks API] --> Ops[Feature Application-Operationen]
+  Ops --> Access[CookbookAccess / AccountAccess]
+  Ops --> Preconditions[Common.Application.VersionPrecondition]
+  Ops --> Writes[Infrastructure.Persistence.ConcurrencyWrites]
+  Ops --> Snapshot[Infrastructure.Persistence.ReadSnapshot]
+  Ops --> EF[RecipeDb / EF Core]
+  Writes --> EF
+  Snapshot --> EF
+  EF --> SQLite[(eine SQLite-Datenbank / Bildblobs)]
+  EF --> Domain[Recipoke.Domain: Recipe / Cookbook / Mengenregeln]
+```
+
+Die API-interne direkte EF-Abhängigkeit bleibt der dokumentierte Hybrid, keine strikte Clean Architecture. Gemeinsame Precondition-/CAS-Schritte reduzieren tatsächliche Duplikation (DRY), ohne Berechtigungs- oder Fachregeln zusammenzuwerfen (SRP/ISP). Die bestehenden Ports bleiben substituierbar; neue Schnittstellen oder Dispatcher wurden nicht erfunden (DIP/LSP/YAGNI). Die Erweiterung verlangt neue versionierte Operationen und explizite Testfälle statt zentraler Typverzweigungen (OCP). Die beiden Release-Verträge sind organisatorisch koordiniert (Conway). Versionswerte werden strikt geprüft und nicht aus fehlenden Werten erraten; tolerierte Mengenschreibweisen bleiben explizit normalisiert. Ausführliche gemessene Ergebnisse: [Step-6-Nachweis](../shared-editing.md#tatsächlich-ausgeführte-nachweise-2026-10-18).
