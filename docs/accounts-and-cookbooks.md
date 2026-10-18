@@ -12,7 +12,7 @@ dotnet tool restore
 dotnet build --no-restore
 dotnet user-secrets set 'Accounts:PublicAppUrl' 'http://localhost:4200' --project backend/RecipeAtlas.Api
 dotnet run --no-build --project backend/RecipeAtlas.Api -- --bootstrap-admin
-dotnet run --no-build --project backend/RecipeAtlas.Api --launch-profile http
+dotnet run --project backend/RecipeAtlas.Api --launch-profile http
 ```
 
 Bootstrap applies migrations and prompts for username, display name and a new password (12–256 characters, no composition rules). Password input is hidden in a terminal. Redirected stdin is supported for a secure secret-input channel; it must contain three lines. Do not put passwords in CLI arguments, a checked-in file or shell history. There is no public setup route. Old PBKDF2 owner hashes are not Identity passwords and are never reused.
@@ -133,7 +133,7 @@ These are manual demonstration steps, not a claim of performed browser verificat
 
 `dotnet run --no-build --project tests/Recipoke.Tests` runs domain/SQLite/architecture and deterministic write-order/rollback checks. `python3 tests/accounts_integration.py` exercises multiple roles, invitations, concurrency, sessions, cache/CSRF and account lifecycle over HTTP with disposable SQLite. `python3 tests/upgrade_compatibility.py /path/to/old-publish/Recipoke.Api.dll` uses the real old binary to create representative data and an actual owner cookie, then upgrades in isolation. GitHub Actions always runs the migration test in the console suite; the optional old-binary comparison needs a supplied publish directory and is not a silently skipped CI check.
 
-Frontend TestBed/Vitest covers invitation terminal states, administration visibility, navigation, role controls, 401/403/404, preserved edits, session cleanup and stale response suppression. No normal test needs external sites, model credentials or paid calls. An optional real Chromium runner in the frontend, `node tests/browser-accounts-smoke.mjs /absolute/backend/root`, starts both applications with disposable data and verifies the invitation/sharing/editor/account workflows plus horizontal layout at 320px, 390px and 1280px. It requires installed Chromium, Node 24+, frontend dependencies and a built backend on PATH through dotnet. Its current 35 checks passed with Chromium 154. It does not require private-repository credentials, but does need both local checkouts, so it is explicitly optional rather than a frontend-only CI step. Public TLS, Docker runtime and a full visual review still require deployment verification.
+Frontend TestBed/Vitest covers invitation terminal states, administration visibility, navigation, role controls, 401/403/404, preserved edits, session cleanup and stale response suppression. No normal test needs external sites, model credentials or paid calls. An optional real Chromium runner in the frontend, `node tests/browser-accounts-smoke.mjs /absolute/backend/root`, starts both applications with disposable data and verifies the invitation/sharing/editor/account workflows plus horizontal layout at 320px, 390px and 1280px. It requires installed Chromium, Node 24+, frontend dependencies and a built backend on PATH through dotnet. The initial UI suite passed 35 checks with Chromium 154; the current 48-check suite also measures Material-icon centering and member-field spacing. It does not require private-repository credentials, but does need both local checkouts, so it is explicitly optional rather than a frontend-only CI step. Public TLS, Docker runtime and a full visual review still require deployment verification.
 
 Shared login/invitation rate budgets suit a small single-instance installation but permit denial of service against other users. Revisit with trustworthy proxy/IP attribution and growing traffic. Sessions and permissions are checked from SQLite; this deliberately adds reads. SQLite serializes writes, including password hashing in the invitation transaction. Watch contention before increasing scale. SameSite Strict may require explicit navigation into the app from external links; invitation validation remains public.
 
@@ -150,3 +150,18 @@ On mobile, use the left menu for Cookbooks, Account, administrator-only Accounts
 Deleting a cookbook is a permanent owner-only action. The separate confirmation states the cookbook name, recipe count and loss of related ingredients, steps, images and invitations. Cancelling sends no DELETE. The backend enforces ownership and a single transaction regardless of UI. There is no undo, ownership transfer, account deletion or email notification service.
 
 Additional normal verification: `python3 tests/ui_support_integration.py`. Optional real-binary upgrade: `python3 tests/ui_upgrade.py /path/to/pre-ui-publish/Recipoke.Api.dll`. Both use synthetic disposable data. The frontend browser runner now exercises the new navigation, consent, profiles, creation and confirmed deletion paths as well as 320px/390px/1280px layouts.
+
+
+## Local troubleshooting: invitation endpoint returns 404
+
+After pulling backend changes, stop the running API and restart with a build:
+
+```sh
+dotnet run --project backend/RecipeAtlas.Api --launch-profile http
+```
+
+`--no-build` executes the last compiled DLL. Pulling source files does not rebuild it: an older accounts backend returns 404 for `/api/cookbook-invitations` and its member POST immediately grants access. The matching current backend stages a pending invitation instead. Do not use `--no-build` after pulling unless you have explicitly completed `dotnet build` in this checkout. Start the matching frontend with `npm start`; its proxy forwards `/api/**` to port 5080. Stop any other process serving an older backend on that port.
+
+Without signing in, `curl -i http://localhost:5080/api/cookbook-invitations` should return **401**, rather than 404, on a bootstrapped current backend. In the signed-in browser the same request through port 4200 should return 200 and an array (possibly empty). A backend awaiting its initial setup returns 503. These read-only checks do not alter membership or bootstrap an account.
+
+The frontend now reports a missing consent API explicitly and checks its availability before sending either a member invitation or initial cookbook invitations. It does not fall back to immediate membership. Previously accepted members, including people added while an older binary was running, remain accepted. For a deliberate invitation test, the owner must remove that existing membership and then send a new invitation; this update never revokes access automatically.

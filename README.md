@@ -17,7 +17,7 @@ dotnet build --no-restore
 dotnet user-secrets set 'Accounts:PublicAppUrl' 'http://localhost:4200' --project backend/RecipeAtlas.Api
 # Applies pending migrations, prompts for username/display name/password, then exits.
 dotnet run --no-build --project backend/RecipeAtlas.Api -- --bootstrap-admin
-dotnet run --no-build --project backend/RecipeAtlas.Api --launch-profile http
+dotnet run --project backend/RecipeAtlas.Api --launch-profile http
 ```
 
 The password prompt does not echo. Choose 12–256 characters; there is no default password or public registration route. The initial administrator can add an email on the Account page. Do not put passwords into arguments, shell history or tracked files. The CLI accepts redirected standard input for a protected secret-input channel; do not save it in the repository. A completed bootstrap is a no-op and never resets credentials. Deliberate recovery uses `--recover-admin` instead.
