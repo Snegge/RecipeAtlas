@@ -1,4 +1,5 @@
 """Optional real-binary upgrade from accounts/cookbooks before UI metadata. Never uses user data."""
+from contextlib import closing
 import hashlib
 import http.cookiejar
 import json
@@ -59,7 +60,7 @@ with tempfile.TemporaryDirectory(prefix='recipoke-ui-upgrade-') as directory:
         call(admin,'PUT',path+'/image',200,png);before=call(member,'GET',path,200)
     finally:stop(process,log)
     db_path=Path(directory)/'recipes.db'
-    with sqlite3.connect(db_path) as db:
+    with closing(sqlite3.connect(db_path)) as db, db:
         tables=[row[0] for row in db.execute("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' AND name NOT LIKE '__EF%'")]
         columns={table:[row[1] for row in db.execute('PRAGMA table_info("'+table+'")')] for table in tables}
         original={table:db.execute('SELECT '+','.join('"'+c+'"' for c in names)+' FROM "'+table+'" ORDER BY 1').fetchall() for table,names in columns.items()}
@@ -75,7 +76,7 @@ with tempfile.TemporaryDirectory(prefix='recipoke-ui-upgrade-') as directory:
         assert call(member,'GET','/api/cookbook-invitations',200)==[] # Existing sharing is not converted to pending.
         details=call(admin,'GET',prefix,200);assert details['description'] is None and details['imageUrl'] is None and details['recipeCount']==1
     finally:stop(process,log)
-    with sqlite3.connect(db_path) as db:
+    with closing(sqlite3.connect(db_path)) as db, db:
         for table,names in columns.items():assert db.execute('SELECT '+','.join('"'+c+'"' for c in names)+' FROM "'+table+'" ORDER BY 1').fetchall()==original[table],table+' changed'
         upgraded=db.execute('SELECT * FROM __EFMigrationsHistory ORDER BY MigrationId').fetchall()
         assert upgraded[:len(history)]==history and len(upgraded)==len(history)+2

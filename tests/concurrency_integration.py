@@ -1,4 +1,5 @@
 """Version contracts, SQLite aggregate atomicity and authorization. No real data or providers."""
+from contextlib import closing
 from concurrent.futures import ThreadPoolExecutor
 import copy
 import http.cookiejar
@@ -263,7 +264,7 @@ with tempfile.TemporaryDirectory(prefix='recipoke-concurrency-') as directory:
         # A deleted original is unavailable, not an editable conflict.
         call(owner, 'DELETE', path, 204, headers=tag(reviewed['version']))
         call(owner, 'PUT', path, 404, command(reviewed['version']), code='resource_unavailable')
-        with sqlite3.connect(Path(directory) / 'recipes.db') as db:
+        with closing(sqlite3.connect(Path(directory) / 'recipes.db')) as db, db:
             assert not db.execute('PRAGMA foreign_key_check').fetchall()
             for table in ['Recipes', 'Cookbooks']:
                 tokens = [row[0] for row in db.execute('SELECT Version FROM ' + table)]

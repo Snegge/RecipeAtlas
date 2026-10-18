@@ -1,3 +1,4 @@
+from contextlib import closing
 from versioned_requests import with_current_version
 """Invitation, session and cookbook isolation checks. Synthetic SQLite; no external providers."""
 import base64
@@ -201,7 +202,7 @@ with tempfile.TemporaryDirectory(prefix='recipoke-accounts-') as data:
         assert call(public, 'POST', '/api/invitations/validate', 200, {'token': revoked})['status'] == 'Revoked'
         call(public, 'POST', '/api/invitations/redeem', 400, {**attempt, 'token': revoked, 'username': 'revoked'})
         expired_id, expired = invite(admin)
-        with sqlite3.connect(Path(data) / 'recipes.db') as db:
+        with closing(sqlite3.connect(Path(data) / 'recipes.db')) as db, db:
             db.execute('UPDATE Invitations SET ExpiresAtUtc=0 WHERE Id=?', (expired_id.upper(),))
             hashes = [row[0] for row in db.execute('SELECT TokenHash FROM Invitations')]
             assert all(len(value) == 64 and token not in value for value in hashes)
@@ -220,7 +221,7 @@ with tempfile.TemporaryDirectory(prefix='recipoke-accounts-') as data:
             except urllib.error.HTTPError as error: return error.code
         with ThreadPoolExecutor(2) as pool: statuses = list(pool.map(redeem_race, ['race-one', 'race-two']))
         assert sorted(statuses) == [204, 400], statuses
-        with sqlite3.connect(Path(data) / 'recipes.db') as db:
+        with closing(sqlite3.connect(Path(data) / 'recipes.db')) as db, db:
             assert db.execute("SELECT COUNT(*) FROM AspNetUsers WHERE UserName IN ('race-one','race-two')").fetchone()[0] == 1
             assert db.execute('SELECT COUNT(*) FROM Cookbooks').fetchone()[0] == db.execute('SELECT COUNT(*) FROM AspNetUsers').fetchone()[0] + 1  # editor created an extra cookbook
         # Revocation and redemption share the same immediate transaction boundary.

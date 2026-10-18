@@ -1,4 +1,5 @@
 """Optional cross-binary account upgrade. All content, credentials and databases are synthetic."""
+from contextlib import closing
 import hashlib
 import http.cookiejar
 import json
@@ -86,14 +87,14 @@ with tempfile.TemporaryDirectory(prefix='recipoke-upgrade-') as temporary:
         return result.stdout
 
     def history():
-        with sqlite3.connect(data / 'recipes.db') as db:
+        with closing(sqlite3.connect(data / 'recipes.db')) as db, db:
             return db.execute('SELECT * FROM __EFMigrationsHistory ORDER BY MigrationId').fetchall()
 
     def key_hashes():
         return {p.name: hashlib.sha256(p.read_bytes()).hexdigest() for p in (data / 'keys').iterdir()}
 
     def old_content():
-        with sqlite3.connect(data / 'recipes.db') as db:
+        with closing(sqlite3.connect(data / 'recipes.db')) as db, db:
             # Compare every previous column, including IDs, quantities, order, dates, image bytes and references.
             return {table: (columns, db.execute(f'SELECT {",".join(columns)} FROM "{table}" ORDER BY 1').fetchall())
                     for table, columns in old_columns.items()}
@@ -109,7 +110,7 @@ with tempfile.TemporaryDirectory(prefix='recipoke-upgrade-') as temporary:
         before = request('GET', f'/api/recipes/{recipe["id"]}', 200)
     finally:
         stop(p, log)
-    with sqlite3.connect(data / 'recipes.db') as db:
+    with closing(sqlite3.connect(data / 'recipes.db')) as db, db:
         old_columns = {table: [row[1] for row in db.execute(f'PRAGMA table_info("{table}")')]
                        for table in ['Recipes', 'Ingredient', 'RecipeStep', 'Images']}
     original = old_content()

@@ -96,6 +96,14 @@ python3 tests/check_shared_contracts.py ../RecipeAtlasFrontend
 python3 scripts/sync_frontend_contracts.py ../RecipeAtlasFrontend --check
 ```
 
+On Windows/PowerShell, use `python` if that is your installed Python command. To run the account, UI-support and concurrency HTTP suites with additional SQLite connection-lifetime checks:
+
+```powershell
+python tests/test_sqlite_cleanup.py
+```
+
+This executes the same 159 + 78 + 111 HTTP checks and verifies that their Python SQLite connections are explicitly closed. A connection's own `with` block commits/rolls back; it does not close the connection. The scripts preserve both behaviors using `contextlib.closing` around the transaction scope, preventing Windows `WinError 32` during disposable database cleanup. CI runs these checks on Linux and Windows; they never open your application data directory.
+
 `dotnet test` does not run the console suite. Tests use disposable SQLite and synthetic credentials; no migration runs against user data. With `--no-connect`, EF cannot report applied/pending database state; this is expected. The model check separately compares code and snapshot.
 
 Use the actual frontend root containing `package.json` in cross-repository commands. `../RecipeAtlasFrontend` only works for sibling checkouts. For intentional contract changes run `python3 scripts/export_openapi.py` then `python3 scripts/sync_frontend_contracts.py /absolute/frontend/root`, inspect both diffs and rerun checks. Domain unit definitions/backend fixtures remain authoritative.

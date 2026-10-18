@@ -1,3 +1,4 @@
+from contextlib import closing
 from versioned_requests import with_current_version
 """Consent, profiles, covers and destructive-use-case regression tests. Only disposable SQLite."""
 from concurrent.futures import ThreadPoolExecutor
@@ -120,15 +121,15 @@ with tempfile.TemporaryDirectory(prefix='recipoke-ui-support-') as directory:
         uploaded=call(viewer,'PUT','/api/account/avatar',200,PNG)
         call(editor,'GET',uploaded['avatarUrl'],200);call(stranger,'GET',uploaded['avatarUrl'],404)
         # Force failure after the recipes delete. The whole deletion must roll back.
-        with sqlite3.connect(Path(directory)/'recipes.db') as db:
+        with closing(sqlite3.connect(Path(directory)/'recipes.db')) as db, db:
             db.execute("CREATE TRIGGER RejectMembershipDeletion BEFORE DELETE ON Memberships BEGIN SELECT RAISE(ABORT,'Synthetic delete failure'); END")
         call(admin,'DELETE',prefix,500)
         call(admin,'GET',recipe_path,200);assert call(admin,'GET',recipe_path+'/image',200)==PNG
         assert call(admin,'GET',prefix,200)['recipeCount']==1
-        with sqlite3.connect(Path(directory)/'recipes.db') as db:db.execute('DROP TRIGGER RejectMembershipDeletion')
+        with closing(sqlite3.connect(Path(directory)/'recipes.db')) as db, db:db.execute('DROP TRIGGER RejectMembershipDeletion')
         call(admin,'DELETE',prefix,204)
         call(admin,'GET',prefix,404);call(viewer,'GET',recipe_path,404);call(viewer,'GET',cover['imageUrl'],404)
-        with sqlite3.connect(Path(directory)/'recipes.db') as db:
+        with closing(sqlite3.connect(Path(directory)/'recipes.db')) as db, db:
             assert db.execute('SELECT COUNT(*) FROM Recipes').fetchone()[0]==0
             assert db.execute('SELECT COUNT(*) FROM Images').fetchone()[0]==0
             assert db.execute('SELECT COUNT(*) FROM CookbookImages').fetchone()[0]==0

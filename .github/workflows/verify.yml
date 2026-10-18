@@ -18,12 +18,26 @@ jobs:
       # Console runner: dotnet test would not execute this suite.
       - run: dotnet run --no-build --project tests/Recipoke.Tests
       - run: python3 tests/integration.py
-      - run: python3 tests/accounts_integration.py
-      - run: python3 tests/ui_support_integration.py
-      - run: python3 tests/concurrency_integration.py
+      - name: Test accounts, UI support and concurrency with SQLite disposal checks
+        run: python3 tests/test_sqlite_cleanup.py
       - run: python3 scripts/publish_pre_concurrency.py /tmp/recipoke-before-concurrency
       - run: python3 tests/concurrency_upgrade.py /tmp/recipoke-before-concurrency/Recipoke.Api.dll
       - run: python3 tests/test_contract_paths.py
       - run: dotnet ef migrations list --no-connect --no-build --project backend/RecipeAtlas.Api
       - run: dotnet ef migrations has-pending-model-changes --no-build --project backend/RecipeAtlas.Api
       - run: python3 scripts/export_openapi.py --check
+
+  windows-http:
+    runs-on: windows-2025
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.401'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.14'
+      - run: dotnet restore --locked-mode
+      - run: dotnet build --no-restore
+      - name: Test HTTP behavior and temporary SQLite cleanup on Windows
+        run: python tests/test_sqlite_cleanup.py
