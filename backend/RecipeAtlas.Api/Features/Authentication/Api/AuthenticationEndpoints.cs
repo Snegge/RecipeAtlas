@@ -1,32 +1,22 @@
-using System.Security.Claims;
-using Microsoft.AspNetCore.Authentication;
-using Microsoft.AspNetCore.Authentication.Cookies;
-using Recipoke.Api.Features.Authentication.Infrastructure;
-
+using Recipoke.Api.Features.Accounts.Application;
 namespace Recipoke.Api.Features.Authentication.Api;
-
 public static class AuthenticationEndpoints
 {
     public static void Map(WebApplication app)
     {
-        app.MapPost("/api/auth/login", async (LoginInput input, OwnerAuth owner, HttpContext context) =>
+        app.MapPost("/api/auth/login", async (LoginInput input, AccountAuthentication operation, ISessionCookies sessions, CancellationToken ct) =>
         {
-            if (!owner.Verify(input.Password)) return Results.Unauthorized();
-            var identity = new ClaimsIdentity(
-                [new Claim(ClaimTypes.NameIdentifier, "owner"), new Claim("stamp", owner.Stamp)],
-                CookieAuthenticationDefaults.AuthenticationScheme);
-            await context.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme,
-                new ClaimsPrincipal(identity), new AuthenticationProperties { IsPersistent = true });
-            return Results.NoContent();
-        }).RequireRateLimiting("login");
-
-        app.MapGet("/api/auth/me", () => Results.Ok(new { name = "owner" }))
-            .RequireAuthorization();
-
-        app.MapPost("/api/auth/logout", async (HttpContext context) =>
+            var id = await operation.AuthenticateAsync(input.Username, input.Password, ct);
+            if (id is null) return Results.Problem(statusCode: 401, title: "Invalid username or password.");
+            await sessions.SignInAsync(id.Value); return Results.NoContent();
+        }).RequireRateLimiting("login").Produces(204).ProducesProblem(401);
+        app.MapGet("/api/auth/me", async (AccountAuthentication operation, CancellationToken ct) => Results.Ok(await operation.CurrentAsync(ct)))
+            .RequireAuthorization().Produces<CurrentUserResponse>();
+        app.MapPost("/api/auth/logout", async (ISessionCookies sessions) => { await sessions.SignOutAsync(); return Results.NoContent(); })
+            .RequireAuthorization().Produces(204);
+        app.MapPost("/api/auth/password", async (ChangePasswordInput input, AccountAuthentication operation, ISessionCookies sessions, CancellationToken ct) =>
         {
-            await context.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
-            return Results.NoContent();
-        }).RequireAuthorization();
+            var id = await operation.ChangePasswordAsync(input, ct); await sessions.SignInAsync(id); return Results.NoContent();
+        }).RequireAuthorization().Produces(204).ProducesValidationProblem();
     }
 }

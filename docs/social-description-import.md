@@ -1,6 +1,6 @@
 # Description-only social and text import
 
-The feature is included in `main` in both repositories. Historical development used `feature/social-description-import`, based on backend `WebsiteScraping` and frontend `WebsiteReipeEctraction`. Use the selected `main` checkout; no feature-branch merge or new migration is needed. See [Recipoke rename compatibility](../README.md#recipoke-rename-compatibility) for retained authentication, configuration and data identifiers.
+The feature is included in `main` in both repositories. Historical development used `feature/social-description-import`, based on backend `WebsiteScraping` and frontend `WebsiteReipeEctraction`. For the current accounts feature use matching `feature/accounts-and-cookbooks` checkouts; follow [the account upgrade runbook](accounts-and-cookbooks.md). Social import itself adds no migration. See [Recipoke rename compatibility](../README.md#persistence-compatibility-and-upgrade) for retained authentication, configuration and data identifiers.
 
 The existing import endpoint accepts recipe website links, public YouTube videos
 and Shorts, TikTok videos, Instagram Reels, or pasted text. Social import reads
@@ -49,8 +49,7 @@ $env:RecipeText__Model = 'gemini-flash-latest'
 $env:RecipeText__ApiKey = Read-Host 'Gemini API key' -MaskInput
 ```
 
-Keep your existing owner-password configuration and data directory. For a fresh
-checkout, follow the owner setup in [README](../README.md). API health is
+Keep the existing data directory. Complete Identity administrator bootstrap as described in [README](../README.md); the old owner-password configuration is ignored. API health is
 `http://localhost:5080/health`; startup applies existing migrations. Do not delete
 the database. Neither key nor owner credentials belong in Git, Angular, request
 logs, or example files. Environment variables above last only for that shell;
@@ -82,7 +81,7 @@ npm run build
 npm start
 ```
 
-Open `http://localhost:4200`, sign in, choose **Import recipe → Link**, and paste
+Open `http://localhost:4200`, sign in, select a writable cookbook, choose **Import recipe → Link**, and paste
 a public video/Short/Reel URL. On caption retrieval failure, choose **Paste
 description instead**: the original social URL remains the draft's source.
 **Import recipe → Text** accepts standalone recipe text without a URL. Paste full
@@ -199,14 +198,14 @@ FFmpeg. Compose passes `RecipeText__ApiKey` / `RecipeText__Model` from the host
 environment (empty key keeps website imports available):
 
 ```bash
-# export the model/key securely as above; retain existing owner/domain settings
+# export the model/key securely as above; retain domain/provider settings; bootstrap accounts separately
 docker compose up -d --build
 ```
 
 The image build was attempted here but the registry's Microsoft runtime blob
 download returned HTTP 403. Container execution remains unverified; build/test
 the image locally. Deploy both feature branches together to enable the text UI;
-the existing URL contract stays compatible. No additional schema migration.
+the import URL contract stays compatible. The account feature adds its own schema migration and cookbook-scoped recipe save routes.
 
 ## API references used
 

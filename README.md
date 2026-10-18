@@ -1,445 +1,146 @@
 # Recipoke backend
 
-A private, single-owner recipe API. C# / ASP.NET Core 10, EF Core 10, SQLite.
+Invitation-only recipe application: ASP.NET Core 10, Identity cookies, EF Core 10 and one SQLite database. Recipes and images belong to cookbooks with Owner, Editor and Viewer access. Global administrators manage accounts and invitations; that capability grants no automatic access to private recipes.
 
-This package contains the complete backend source, an initial database migration, an integration test, and Docker deployment files. It does not contain a frontend. Run one API instance with a persistent local disk.
+The backend remains a feature-organised monolith with an independent domain assembly. Application operations use EF Core directly; endpoints handle HTTP. See the German [architecture guide](docs/architecture/README.md), [account/cookbook decisions](docs/architecture/adr/009-identity-sessions.md) and [upgrade/runbook](docs/accounts-and-cookbooks.md).
 
-Siehe [Architekturüberblick und ADRs](docs/architecture/README.md) für die umgesetzten Entwurfsentscheidungen, Modulgrenzen und Verifikation.
+Both repositories must use `feature/accounts-and-cookbooks` together. This feature changes authentication and recipe routes and adds a migration; it is not a rename-only upgrade.
 
-## Design
+## Local setup
 
-| Concern | Choice |
-|---|---|
-| HTTP API | ASP.NET Core Minimal APIs |
-| Data access | EF Core used directly in endpoints |
-| Database | SQLite, one file on persistent disk |
-| Pictures | One optional JPEG, PNG, or WebP per recipe, stored in SQLite |
-| Login | One owner password, salted PBKDF2 hash, encrypted HttpOnly cookie |
-| Browser writes | Required X-RecipeAtlas header, no cross-origin API access |
-| Deployment | One API container behind Caddy HTTPS |
-
-No separate database server is needed. Recipes, ingredients, steps, and images are saved together in the database. Storing a few hundred bounded photos is a reasonable starting point for a personal cookbook. If the collection becomes large, move images to object storage and add thumbnails.
-
-The API returns small paginated cards for the recipe list. It downloads ingredients and steps only for a detail request, and image bytes only for an image request. Responsive layouts, touch controls, and image resizing belong in your frontend.
-
-## 1. Use the existing checkout
-
-Work on `main` in the existing `Snegge/RecipeAtlas` checkout. The GitHub repository name, remote URL and local checkout name have not changed. The repository root contains:
-
-| Path | Purpose |
-|---|---|
-| Recipoke.slnx | Solution |
-| backend/RecipeAtlas.Api/Program.cs | Configuration, security, startup |
-| backend/RecipeAtlas.Api/Features/Authentication/Infrastructure/OwnerAuth.cs | Password hashing, login, logout |
-| backend/Recipoke.Domain/Recipes/ | Database entities and unit definitions |
-| backend/RecipeAtlas.Api/Infrastructure/Persistence/RecipeDb.cs | EF Core configuration |
-| backend/RecipeAtlas.Api/Features/Recipes/Application/RecipeContracts.cs | Request/response types and validation |
-| backend/RecipeAtlas.Api/Features/Recipes/Api/RecipeEndpoints.cs | CRUD, search, and images |
-| backend/RecipeAtlas.Api/Infrastructure/Persistence/Migrations/ | Versioned schema |
-| tests/integration.py | Isolated end-to-end API checks |
-| sample-recipe.json | Working create/update payload |
-| Dockerfile, compose.yaml, deploy/Caddyfile | HTTPS deployment |
-
-Run the following commands from that repository root unless stated otherwise.
-
-## Recipoke rename compatibility
-
-The solution is `Recipoke.slnx`; the API project, assembly and root namespace are `Recipoke.Api`. The console regression project is `tests/Recipoke.Tests/Recipoke.Tests.csproj`. No API route, JSON property, database table or migration ID changed, and no rename migration is required. Migration namespaces/model type metadata were updated to match the new CLR namespace; the existing SQL history remains unchanged.
-
-| Retained identifier | Reason |
-|---|---|
-| `backend/RecipeAtlas.Api/` | Keep the content root stable, including default `data/` and any configured relative `DataDirectory`. The project file inside is now `Recipoke.Api.csproj`. Do not move or recreate existing data. |
-| `RecipeAtlas.Session`, cookie path `/api`, authentication scheme | Keep existing browser sessions usable. |
-| Data-protection application name `RecipeAtlas`, `data/keys/` | Continue decrypting existing cookies with the same key ring. Keep keys together with the database. |
-| `RecipeAtlas.LocalDevelopment` user-secrets ID | Reuse the existing owner password hash and optional model configuration. |
-| `X-RecipeAtlas: 1` | Stable browser write/CSRF contract, shared with the frontend and external clients. No new header alias is introduced. |
-| `Owner:PasswordHash` / `Owner__PasswordHash`, `DataDirectory`, `RecipeText`, `SocialImport` | Existing application configuration remains authoritative. Normal ASP.NET Core provider precedence is unchanged (command line, environment, development user secrets, JSON). |
-| `RECIPE_ATLAS_PASSWORD_HASH`, `RECIPE_ATLAS_DOMAIN` | Existing Compose `.env` and Caddy deployments continue to work. No new deployment variable aliases are introduced. |
-| `recipes.db`, existing migration IDs and `__EFMigrationsHistory` | Preserve recipes, ingredients, steps, photos and migration history. |
-| `recipe_data`, `caddy_data`, `caddy_config`, `/app/data` | Preserve deployment volumes and key/database mounts. Keep the existing Compose project name and checkout directory. |
-| `Snegge/RecipeAtlas`, sibling `RecipeAtlasFrontend` paths | GitHub repositories/remotes and checkout locations are unchanged. |
-
-The integration runner accepts `RECIPOKE_DOTNET`; if it is explicitly set it takes precedence over legacy `RECIPE_ATLAS_DOTNET`, otherwise the legacy value is used, then `dotnet`. An explicitly empty override is invalid, rather than silently falling back. This runner alias does not alter application configuration. There are no application localStorage, sessionStorage or IndexedDB branding keys to migrate. Images remain database blobs exposed by the same `/api/recipes/{id}/image` routes.
-
-Before upgrading an existing deployment, back up its data and keys using the existing procedure. The rename itself needs no database update. Rebuild both applications and use the updated Docker entry point `Recipoke.Api.dll`; do not rename volumes, the Compose project or the API content-root directory.
-
-## 2. Install .NET 10 SDK
-
-Install the SDK, not only the runtime: https://dotnet.microsoft.com/download/dotnet/10.0
-
-On CachyOS / Arch Linux:
-
-```sh
-sudo pacman -Syu dotnet-sdk-10.0 aspnet-runtime-10.0
-dotnet --version
-dotnet --list-runtimes
-```
-
-The SDK should show `10.0.x`. The runtime list should include `Microsoft.AspNetCore.App 10.0.x`.
-
-The application packages and local EF tool are pinned to 10.0.12. Future SDK patches within .NET 10 can build this project. Commands below work in Bash and Fish. On Windows, use the official SDK installer and PowerShell. Use `curl.exe` where PowerShell aliases `curl`.
-
-## 3. Restore and build
+Requirements: .NET SDK **10.0.401** (see `global.json`), Python 3 for checks. No database server is needed. Run from the backend checkout:
 
 ```sh
 dotnet restore --locked-mode
 dotnet tool restore
-dotnet build
+dotnet build --no-restore
+dotnet user-secrets set 'Accounts:PublicAppUrl' 'http://localhost:4200' --project backend/RecipeAtlas.Api
+# Applies pending migrations, prompts for username/display name/password, then exits.
+dotnet run --no-build --project backend/RecipeAtlas.Api -- --bootstrap-admin
+dotnet run --project backend/RecipeAtlas.Api --launch-profile http
 ```
 
-The EF tool is local to this repository. You do not need a global dotnet-ef installation. SQLite does not need a service, container, or separate installation.
+The password prompt does not echo. Choose 12–256 characters; there is no default password or public registration route. The initial administrator can add an email on the Account page. Do not put passwords into arguments, shell history or tracked files. The CLI accepts redirected standard input for a protected secret-input channel; do not save it in the repository. A completed bootstrap is a no-op and never resets credentials. Deliberate recovery uses `--recover-admin` instead.
 
-## 4. Set your owner password
-
-Generate a hash. Enter a password of at least 12 characters when prompted. Nothing is echoed while you type.
+Open `http://localhost:5080/health`. This is liveness, not account-setup readiness: all `/api` requests return 503 until bootstrap completes. In the matching frontend checkout:
 
 ```sh
-dotnet run --project backend/RecipeAtlas.Api/Recipoke.Api.csproj -- --hash-password
+npm ci
+npm run check:contracts
+npm test
+npm run build
+npm start
 ```
 
-Copy only the generated hash into this command:
+Visit `http://localhost:4200`. Angular proxies `/api` to 5080. Choose a cookbook before creating/importing recipes. Accounts administration issues a one-use invitation link; share it privately. See the [two-user demonstration](docs/accounts-and-cookbooks.md#two-user-demonstration).
+
+`/workspace/.setup/env.sh` is only a cloud activation script, not a local prerequisite. Run the commands with your installed SDK/Python/Node; do not source that file on your computer.
+
+## Persistence, compatibility and upgrade
+
+Default content root remains `backend/RecipeAtlas.Api/`; data remains `data/recipes.db` and `data/keys/` beneath it unless `DataDirectory` is configured. Images remain SQLite blobs, not files. Keep the directory, Compose project name and volume mounts unchanged.
+
+**Before upgrading an existing deployment, stop writes and back up the entire data directory and configuration. Follow [the upgrade procedure](docs/accounts-and-cookbooks.md#upgrade-an-existing-installation).** Startup still applies pending migrations. `AccountsAndCookbooks` preserves all old rows and IDs, assigns recipes to a reserved personal cookbook, and keeps access closed until the server-side administrator command finishes atomically. Historical migrations are unchanged. Downgrade requires restoring the pre-upgrade backup with both old binaries.
+
+| Identifier | Decision |
+|---|---|
+| `Recipoke.slnx`, `Recipoke.Api`, `Recipoke.Domain`, `tests/Recipoke.Tests` | Current solution/projects |
+| `backend/RecipeAtlas.Api`, GitHub repositories/remotes | Retained to preserve content root and checkout conventions |
+| `X-RecipeAtlas: 1` | Retained same-origin browser write protection; no CORS |
+| Data-protection application `RecipeAtlas`, `data/keys`, `RecipeAtlas.LocalDevelopment` user-secrets ID | Retained configuration/key locations |
+| `DataDirectory`, `recipes.db`, `recipe_data`, `/app/data` | Retained storage locations; never recreate user data |
+| `RecipeText`, `SocialImport`, `RECIPE_ATLAS_DOMAIN` | Retained import/domain configuration |
+| Old `Owner:PasswordHash`, `Owner__PasswordHash`, `RECIPE_ATLAS_PASSWORD_HASH` | Obsolete and ignored; no conversion to Identity passwords |
+| Old `RecipeAtlas.Session` cookie | Deliberately rejected; fresh username/password login required |
+| New `Recipoke.Session` cookie | Identity scheme, HttpOnly, SameSite Strict, Secure in Production, `/api`, 14 days without sliding |
+
+`RECIPOKE_DOTNET` takes precedence over legacy `RECIPE_ATLAS_DOTNET` in the existing integration runner; neither changes server configuration. No credentials or session tokens are stored in browser storage.
+
+## API contract
+
+Generated snapshot: [contracts/recipoke.openapi.json](contracts/recipoke.openapi.json). `/openapi/v1.json` is exposed only in Development. All API responses use `Cache-Control: no-store`; protected images never return an unauthorised 304. All state-changing requests, including public invitation requests, require `X-RecipeAtlas: 1`. JSON commands use `application/json` and the existing ProblemDetails/validation error format.
+
+| Area | Routes |
+|---|---|
+| Session | `POST /api/auth/login` with username/password; `GET /api/auth/me`; `POST /api/auth/logout`; `POST /api/auth/password` with currentPassword/newPassword |
+| Administrator | `GET /api/admin/accounts`; `PUT /api/admin/accounts/{id}/status` with isActive |
+| Invitations | Admin `GET/POST /api/admin/invitations`, `DELETE /api/admin/invitations/{id}`; public `POST /api/invitations/validate` and `/redeem` |
+| Cookbooks | `GET/POST /api/cookbooks`; `GET/PUT /api/cookbooks/{cookbookId}` |
+| Membership | `GET/POST /api/cookbooks/{cookbookId}/members`; `PUT/DELETE .../members/{userId}`; `POST .../leave` |
+| Recipes | `GET/POST /api/cookbooks/{cookbookId}/recipes`; `GET/PUT/DELETE .../recipes/{id}` |
+| Images | `GET/PUT/DELETE /api/cookbooks/{cookbookId}/recipes/{id}/image` |
+| Draft imports | `POST /api/recipes/import`, active user required; does not save |
+| Units/liveness | Protected `GET /api/units`; public `GET /health` |
+
+Old unscoped recipe routes are retired. Recipe JSON field names, quantity strings, ingredient/step ordering, pagination/search, image signature/5 MiB limit, review flags and import contracts are preserved. A cookbook is supplied through the route; ordinary updates cannot move recipes. The `imageUrl` now contains the cookbook route. Recipe text and image upload remain separate requests; the editor retries photos using the already saved ID.
+
+Unauthenticated requests return 401, inaccessible cookbooks/resources 404, and insufficient permissions within accessible cookbooks 403. Login errors are generic. Five failed logins lock the account for 15 minutes; the existing shared login limiter allows ten attempts per 15-minute window. Invitation validation/redemption share 30 requests per minute. These in-process limits reset on restart. Password changes revoke other sessions; deactivation revokes all old sessions permanently. Reactivation requires a new login.
+
+Invitation links use configured `Accounts:PublicAppUrl` (not the request Host). Default validity is 72 hours (`Accounts:InvitationHours`, 1–720). Links carry their random secret in a fragment, which the acceptance page removes from the address bar. The token is submitted in POST bodies, hashed in storage, and cannot be retrieved later. Never enable request/response-body logging or analytics on invitation flows.
+
+## Verification and contract synchronisation
 
 ```sh
-dotnet user-secrets set "Owner:PasswordHash" "PASTE_HASH_HERE" --project backend/RecipeAtlas.Api/Recipoke.Api.csproj
-```
-
-The hash is stored outside the repository in your local .NET user secrets. User secrets are a development convenience, not encrypted storage. Production uses a separate environment variable. There is no username, registration endpoint, or password reset email.
-
-To change the password, generate a new hash, replace the configured hash, and restart the API. Existing cookies then stop working. A successful login lasts 14 days without extending itself automatically.
-
-## 5. Start the API
-
-```sh
-dotnet run --project backend/RecipeAtlas.Api/Recipoke.Api.csproj --launch-profile http
-```
-
-Open http://localhost:5080/health. Expect `{"status":"ok"}`.
-
-The first start applies the included migration and creates:
-
-```text
-backend/RecipeAtlas.Api/data/recipes.db
-backend/RecipeAtlas.Api/data/keys/
-```
-
-The database contains all recipe content and photos. The `keys` folder keeps authentication cookies valid across restarts. Both are ignored by Git. The health endpoint reports that startup completed. Recipe endpoints require login and return 401 otherwise.
-
-## 6. Try a recipe
-
-In the repository root, create `login.json` with your actual password:
-
-```json
-{"password":"YOUR_ACTUAL_PASSWORD"}
-```
-
-This filename is ignored by Git. Use it only for local testing, then delete it along with `cookies.txt`.
-
-Log in and save the cookie:
-
-```sh
-curl -i -c cookies.txt -H 'Content-Type: application/json' -H 'X-RecipeAtlas: 1' --data-binary @login.json http://localhost:5080/api/auth/login
-```
-
-Expect 204. Add the supplied sample recipe:
-
-```sh
-curl -i -b cookies.txt -H 'Content-Type: application/json' -H 'X-RecipeAtlas: 1' --data-binary @sample-recipe.json http://localhost:5080/api/recipes
-```
-
-Expect 201 and a recipe object. Copy its `id` and replace `RECIPE_ID` below.
-
-```sh
-curl -b cookies.txt 'http://localhost:5080/api/recipes?search=pasta&page=1&pageSize=20'
-curl -b cookies.txt http://localhost:5080/api/recipes/RECIPE_ID
-curl -b cookies.txt http://localhost:5080/api/units
-```
-
-Edit `sample-recipe.json`, then replace the saved recipe's text and ingredients:
-
-```sh
-curl -X PUT -b cookies.txt -H 'Content-Type: application/json' -H 'X-RecipeAtlas: 1' --data-binary @sample-recipe.json http://localhost:5080/api/recipes/RECIPE_ID
-```
-
-Upload a picture from your computer. The body is raw file bytes, not multipart/form-data:
-
-```sh
-curl -X PUT -b cookies.txt -H 'Content-Type: image/jpeg' -H 'X-RecipeAtlas: 1' --data-binary @pasta.jpg http://localhost:5080/api/recipes/RECIPE_ID/image
-```
-
-Remove only the image:
-
-```sh
-curl -X DELETE -b cookies.txt -H 'X-RecipeAtlas: 1' http://localhost:5080/api/recipes/RECIPE_ID/image
-```
-
-Delete the recipe, including its ingredients, steps, and image:
-
-```sh
-curl -X DELETE -b cookies.txt -H 'X-RecipeAtlas: 1' http://localhost:5080/api/recipes/RECIPE_ID
-```
-
-## 7. Understand the API contract
-
-All endpoints except login and health require the session cookie. POST, PUT, and DELETE requests require `X-RecipeAtlas: 1`. JSON bodies use `Content-Type: application/json`.
-
-| Method | Path | Result |
-|---|---|---|
-| GET | /health | Startup/liveness response |
-| POST | /api/auth/login | 204 and cookie, body `{ "password": "..." }` |
-| GET | /api/auth/me | Current owner, or 401 |
-| POST | /api/auth/logout | 204 and cookie removal |
-| GET | /api/units | Available unit codes and labels |
-| GET | /api/recipes | Paginated recipe cards |
-| GET | /api/recipes/{id} | Full recipe |
-| POST | /api/recipes | Create, 201 with full recipe and Location header |
-| PUT | /api/recipes/{id} | Replace text, servings, ingredients, and steps |
-| DELETE | /api/recipes/{id} | Delete recipe, 204 |
-| GET | /api/recipes/{id}/image | Authenticated image bytes |
-| PUT | /api/recipes/{id}/image | Upload or replace image, 200 with imageUrl |
-| DELETE | /api/recipes/{id}/image | Remove image, 204 |
-
-List query parameters are `search`, `page` (default 1), and `pageSize` (default 20, maximum 100). Search matches substrings of titles or ingredient names. SQLite's default LIKE handles ASCII case-insensitivity. Full Unicode case folding and fuzzy search are not included.
-
-A list response has this structure:
-
-```json
-{
-  "items": [],
-  "total": 0,
-  "page": 1,
-  "pageSize": 20
-}
-```
-
-For POST and PUT, use the complete structure in `sample-recipe.json`. The order of the ingredients and steps arrays is preserved. PUT is full replacement of those fields, not a partial patch. It leaves the image alone. Fields returned by the API such as `id`, `imageUrl`, and timestamps are not editable input fields.
-
-Title, servings, at least one ingredient, and at least one step are required. Description, source URL, ingredient notes, and photo are optional. The API stores the source URL as a reference. It does not download or import linked recipes.
-
-| Unit code | Meaning | Quantity |
-|---|---|---|
-| g | Grams | Positive quantity string |
-| kg | Kilograms | Positive quantity string |
-| ml | Milliliters | Positive quantity string |
-| l | Liters | Positive quantity string |
-| tsp | Metric teaspoon, 5 ml | Positive quantity string |
-| tbsp | Metric tablespoon, 15 ml | Positive quantity string |
-| piece | Piece, such as an egg or garlic clove | Positive quantity string |
-| pinch | Pinch, approximate | Positive quantity string |
-| toTaste | To taste | Empty string |
-
-Quantities are strings, such as `"0.5"`, `"1/2"`, `"1 1/2"`, or `"3-4"`. Decimal commas and range separators are normalized on save. `toTaste` uses `""`. The API does not convert mass to volume or infer ingredient density. For canned ingredients use grams or milliliters and put the packaging detail in `note`. Spoon measurements differ by region, so this API explicitly uses metric spoons. Website extraction converts supported cup/fluid-ounce definitions to ml and marks unspecified definitions for review.
-
-Validation returns 400 with an `errors` dictionary. Other relevant statuses are 401 (login required), 403 (missing write header), 404 (missing recipe/image), 413 (image too large), 415 (unsupported image signature), and 429 (login limit). Ten login attempts are allowed per 15-minute fixed window for the entire single-owner app, including successful attempts. This counter resets on process restart.
-
-## 8. Connect your mobile-friendly frontend
-
-Serve the frontend and API from the same origin. Use relative URLs such as `/api/recipes`. During development, configure your frontend development server to proxy `/api` requests to `http://localhost:5080`. Open the frontend through its own local URL. The browser then receives the login cookie on that origin.
-
-For an Angular frontend, put this in `proxy.conf.json` in the frontend project:
-
-```json
-{
-  "/api/**": {
-    "target": "http://localhost:5080",
-    "secure": false
-  }
-}
-```
-
-Start Angular with `ng serve --proxy-config proxy.conf.json`. If your framework uses another development server, configure the equivalent proxy there. Do not solve this by enabling wildcard CORS.
-
-These plain browser fetch examples work through the proxy or on your production origin:
-
-```js
-async function api(path, options = {}) {
-  const response = await fetch(path, {
-    ...options,
-    credentials: "same-origin",
-    headers: {
-      "X-RecipeAtlas": "1",
-      ...(options.headers ?? {})
-    }
-  });
-  if (!response.ok) {
-    const problem = await response.json().catch(() => ({}));
-    throw Object.assign(new Error(problem.title ?? `HTTP ${response.status}`), {
-      status: response.status,
-      errors: problem.errors ?? {}
-    });
-  }
-  return response.status === 204 ? null : response.json();
-}
-
-await api("/api/auth/login", {
-  method: "POST",
-  headers: { "Content-Type": "application/json" },
-  body: JSON.stringify({ password })
-});
-
-const saved = await api("/api/recipes", {
-  method: "POST",
-  headers: { "Content-Type": "application/json" },
-  body: JSON.stringify(recipeFormValue)
-});
-
-// selectedFile is a File from <input type="file">.
-if (selectedFile) {
-  await api(`/api/recipes/${saved.id}/image`, {
-    method: "PUT",
-    headers: { "Content-Type": selectedFile.type || "application/octet-stream" },
-    body: selectedFile
-  });
-}
-```
-
-Fetch the recipe again after upload, then use its `imageUrl` in `<img loading="lazy">`. Same-origin image requests carry the HttpOnly cookie automatically. Keep cookie credentials out of localStorage.
-
-Use `accept="image/jpeg,image/png,image/webp"` on the file input. HEIC is not accepted. Resize phone pictures to approximately 1600 pixels on the longest side and encode them as JPEG/WebP before upload. This API enforces a 5 MiB limit but does not compress, resize, remove EXIF metadata, or fully decode images. It screens binary signatures and serves the detected MIME type with `nosniff`.
-
-Create the recipe first and upload its optional image second. If upload fails, keep the saved recipe ID and retry the image request. Do not create another recipe on retry. Disable Save while a request is running to avoid double submission. Render titles, descriptions, and steps as text, not injected HTML.
-
-## Local paths and cloud-only activation
-
-Run commands from this backend checkout. `/workspace/.setup/env.sh` belongs only to the Codex cloud environment; omit it on your own computer when .NET and Python are already installed.
-
-Cross-repository commands need the actual frontend root (the directory containing `package.json`). `../RecipeAtlasFrontend` works only for sibling checkouts. For any other layout, replace it with the quoted absolute path to your frontend:
-
-```sh
-python3 tests/check_shared_contracts.py "/absolute/path/to/RecipeAtlasFrontend"
-python3 scripts/sync_frontend_contracts.py "/absolute/path/to/RecipeAtlasFrontend" --check
-```
-
-These checks do not modify files. If a contract file is missing in a valid checkout, pull the matching `main` versions of both repositories first. Do not remove `--check` just to work around a path error.
-
-With EF `migrations list --no-connect`, the message that applied/pending status cannot be determined is expected: the command intentionally does not connect to a database. Use the separate `has-pending-model-changes` check for model consistency.
-
-## 9. Run the integration checks
-
-Requires Python 3, with no additional Python packages:
-
-```sh
-dotnet build
+dotnet restore --locked-mode
+dotnet tool restore
+dotnet build --no-restore
 dotnet run --no-build --project tests/Recipoke.Tests
 python3 tests/integration.py
+python3 tests/accounts_integration.py
+python3 tests/ui_support_integration.py
+python3 tests/test_contract_paths.py
+dotnet ef migrations list --no-connect --no-build --project backend/RecipeAtlas.Api
+dotnet ef migrations has-pending-model-changes --no-build --project backend/RecipeAtlas.Api
+python3 scripts/export_openapi.py --check
+python3 tests/check_shared_contracts.py ../RecipeAtlasFrontend
+python3 scripts/sync_frontend_contracts.py ../RecipeAtlasFrontend --check
 ```
 
-The test starts its own server with a random password, temporary database, and separate port. It checks authentication, write protection, validation, search, replacement of ingredients/steps, photo upload/deletion, size limits, recipe deletion, and persistence across restart. It never touches your recipe database.
+`dotnet test` does not run the console suite. Tests use disposable SQLite and synthetic credentials; no migration runs against user data. With `--no-connect`, EF cannot report applied/pending database state; this is expected. The model check separately compares code and snapshot.
 
-Verification performed for this package: .NET SDK 10.0.401 / runtime 10.0.12, build succeeded with zero warnings and zero errors, and all 34 HTTP integration checks passed. Docker and public TLS deployment were not executed in the preparation environment.
+Use the actual frontend root containing `package.json` in cross-repository commands. `../RecipeAtlasFrontend` only works for sibling checkouts. For intentional contract changes run `python3 scripts/export_openapi.py` then `python3 scripts/sync_frontend_contracts.py /absolute/frontend/root`, inspect both diffs and rerun checks. Domain unit definitions/backend fixtures remain authoritative.
 
-## 10. Deploy for access from anywhere
+Optional real-binary upgrade test (requires the complete published previous single-owner version):
 
-Use a Linux server that runs Docker Engine and Docker Compose. This setup needs persistent local storage and one API replica. It is not configured for stateless serverless hosting or horizontal scaling.
+```sh
+python3 tests/upgrade_compatibility.py /path/to/old-publish/Recipoke.Api.dll
+```
 
-1. Point a domain such as `recipes.example.com` at your server's public IP. If you publish an AAAA record, IPv6 must also reach the server.
-2. Allow inbound TCP ports 80 and 443 in the server/provider firewall.
-3. Clone your repository onto the server and change into its root.
-4. Copy `.env.example` to `.env` and restrict its permissions:
+GitHub Actions runs the actual console runner, HTTP suites, model and OpenAPI checks. Frontend CI verifies its own copied contracts without requiring access to the private backend. Live scraping/AI and visual browser/mobile verification are separate checks, not implied by unit tests.
+
+## Deployment
+
+One API instance and persistent local disk, with same-origin HTTPS through Caddy. Keep the existing Compose project name/volumes. `.env.example` now needs the domain; Identity credentials reside in SQLite, not an environment password hash.
 
 ```sh
 cp .env.example .env
 chmod 600 .env
-```
-
-5. Edit `.env`. Set your real domain and the password hash generated in step 4. The domain must be a hostname without `https://` or a path. The hash, not the plaintext password, goes into `RECIPE_ATLAS_PASSWORD_HASH`.
-6. Build and start:
-
-```sh
-docker compose up -d --build
+# Edit RECIPE_ATLAS_DOMAIN; retain existing provider secrets securely.
+docker compose build
+# On an upgrade: stop API writes and back up first; see the runbook.
+docker compose run --rm --no-deps api --bootstrap-admin
+docker compose up -d
 docker compose logs --tail=100 api caddy
 ```
 
-Open `https://YOUR_DOMAIN/health`. Caddy obtains and renews the TLS certificate and redirects HTTP to HTTPS when DNS and inbound ports are correct. The API has no host port of its own. HTTPS terminates at Caddy, and production authentication cookies always use Secure.
+Bootstrap uses a terminal prompt. Recover an administrator with `docker compose run --rm --no-deps api --recover-admin` after stopping the API. A completed normal bootstrap does not change credentials. Do not use `down -v` or replace the data volume. The included backend Caddyfile proxies the API; use the matching frontend's deployment arrangement to serve the SPA and API on the same origin. Container/public TLS operation must be verified in your deployment.
 
-The included Caddyfile initially proxies every request to the backend. `/` returns 404 until you add your frontend. To publish a built single-page frontend later, add this Caddy service volume in `compose.yaml`:
+## Imports and quantity rules
 
-```yaml
-- ./frontend-dist:/srv:ro
-```
+See [quantity strings/conversions](docs/quantity-strings.md) and [description-only social/text imports](docs/social-description-import.md). Website imports work without AI configuration. Social/text extraction uses the existing optional Gemini configuration and pinned yt-dlp setup. No new import capability is added by account sharing. External process networking still needs deployment-level egress isolation; HttpClient destination checks do not sandbox yt-dlp.
 
-Put the built frontend files, including `index.html`, in `frontend-dist`. Replace `deploy/Caddyfile` with:
+Deferred: account deletion/promotion UI, ownership transfer, password-reset delivery, shopping lists, cooking sessions, offline sync and general edit concurrency. Existing recipe edits remain last-write-wins.
 
-```caddyfile
-{$RECIPE_ATLAS_DOMAIN} {
-    header Strict-Transport-Security "max-age=31536000"
-    @backend path /api /api/* /health
-    handle @backend {
-        reverse_proxy api:8080
-    }
-    handle {
-        root * /srv
-        try_files {path} /index.html
-        file_server
-    }
-}
-```
+## Mobile UI, profiles and membership consent
 
-Recreate the services with `docker compose up -d`. For later Caddyfile-only edits, run `docker compose exec caddy caddy reload --config /etc/caddy/Caddyfile`.
+The latest feature update adds cookbook descriptions/covers, account display-name/email/avatar editing, and a private cookbook-invitation inbox. New members must accept before gaining access; at most five pending invitations are displayed and the next appears after a response. Existing accepted memberships remain unchanged. Owners can permanently delete a cookbook and all its recipes/images through a separate confirmation dialog.
 
-## 11. Back up your data
+Start the matching backend/frontend branches together after backing up the data directory. Normal startup applies `20261018100818_CookbookInvitationsAndProfiles`. **An already completed administrator setup does not need to run again, and existing Identity sessions remain usable.** The earlier single-owner upgrade instructions apply only if you are upgrading from that older version.
 
-The `recipe_data` Docker volume persists recipes, photos, and cookie keys. Rebuilding or replacing the API container preserves it. `docker compose down -v` deletes it.
+New API additions: `PUT /api/account/profile`, `PUT/DELETE /api/account/avatar`, protected `GET /api/accounts/{id}/avatar`, `GET /api/cookbook-invitations`, `POST /api/cookbook-invitations/{id}`, `PUT/GET/DELETE /api/cookbooks/{id}/image`, `DELETE /api/cookbooks/{id}`, and owner cancellation at `DELETE /api/cookbooks/{id}/invitations/{userId}`. Cookbook creation accepts description and initial `members` (username/role); `POST .../members` now invites rather than adding immediately. Profile email is not a new login identifier and no email delivery/verification is enabled.
 
-For a consistent backup of this small personal app, briefly stop API writes, copy the entire data directory, then restart. These commands run from the repository root on the server:
+See [ADR 013](docs/architecture/adr/013-cookbook-consent-and-profiles.md). Optional current-session upgrade check against a published pre-UI accounts version:
 
 ```sh
-mkdir -p backups
-docker compose stop api
-docker compose cp api:/app/data backups/recipe-data
-docker compose start api
-chmod -R go-rwx backups
+python3 tests/ui_upgrade.py /path/to/pre-ui-publish/Recipoke.Api.dll
 ```
-
-Use a fresh destination directory for each backup. Copy backups off the server. Protect backups because they include your recipes and authentication keys. Do not copy only `recipes.db` while the server is running, since SQLite may also have journal/WAL files.
-
-For a restore, stop the API, preserve the current data as another backup, then copy the backed-up directory contents into `/app/data` in the stopped API container with `docker compose cp`. Ensure the data remains writable by the container's `app` user before restarting. Example after preserving the current data:
-
-```sh
-docker compose stop api
-docker compose run --rm --no-deps --user root --entrypoint sh api -c 'rm -rf /app/data/*'
-docker compose cp backups/recipe-data/. api:/app/data/
-docker compose run --rm --no-deps --user root --entrypoint sh api -c 'chown -R app:app /app/data'
-docker compose start api
-```
-
-## 12. Commit and evolve the backend
-
-```sh
-git add .
-git status
-git commit -m "Add Recipoke backend"
-git push
-```
-
-Confirm that `.env`, `login.json`, `cookies.txt`, and the `data` directory are absent from the staged files.
-
-For later model changes, generate and commit a new migration:
-
-```sh
-dotnet ef migrations add DescribeYourChange --project backend/RecipeAtlas.Api/Recipoke.Api.csproj
-dotnet build
-dotnet run --no-build --project tests/Recipoke.Tests
-python3 tests/integration.py
-```
-
-Inspect the migration and back up production before deploying. The API applies pending migrations at startup. This is a deliberate choice for a single-instance personal app. Never replace migrations with `EnsureCreated`, and do not delete existing migration history once you have real data.
-
-This first version uses last-write-wins for edits. Editing the same recipe simultaneously on two devices can overwrite an earlier edit. It does not include offline synchronization, recipe scraping, public sharing, multiple accounts, or duplicate-request deduplication. Add those only when you need them.
-
-## Official references
-
-- .NET support policy: https://dotnet.microsoft.com/en-us/platform/support/policy/dotnet-core
-- Cookie authentication: https://learn.microsoft.com/en-us/aspnet/core/security/authentication/cookie?view=aspnetcore-10.0
-- EF Core SQLite provider: https://learn.microsoft.com/en-us/ef/core/providers/sqlite/
-- EF Core migrations: https://learn.microsoft.com/en-us/ef/core/managing-schemas/migrations/applying
-- Arch .NET SDK package: https://archlinux.org/packages/extra/x86_64/dotnet-sdk-10.0/
-- Caddy HTTPS: https://caddyserver.com/docs/quick-starts/https
-
-## String quantities upgrade
-
-See [quantity contracts, conversion assumptions, migration and coordinated deployment](docs/quantity-strings.md). The initial migration remains intact; `StringIngredientQuantities` upgrades existing values without resetting recipe data.
-
-## Social description and pasted-text import
-
-See [setup, local commands, platform restrictions and verification](docs/social-description-import.md).
-This prototype uses metadata-only yt-dlp and backend Gemini extraction; website imports work without an AI key.

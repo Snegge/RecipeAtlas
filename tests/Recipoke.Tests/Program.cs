@@ -104,7 +104,10 @@ try
     try
     {
         var existing = new Recipe { Title = "Existing", Servings = 2, Steps = [new() { Position = 0, Instruction = "Cook" }], Image = new() { ContentType = "image/png", Bytes = [1, 2, 3, 4] } };
-        db.Add(existing); await db.SaveChangesAsync();
+        // Seed the historical schema through SQL: the current model now has CookbookId.
+        await db.Database.ExecuteSqlRawAsync("INSERT INTO Recipes (Id,Title,Servings,CreatedAtUtc,UpdatedAtUtc) VALUES ({0},'Existing',2,{1},{1})", existing.Id, DateTime.UtcNow);
+        await db.Database.ExecuteSqlRawAsync("INSERT INTO RecipeStep (RecipeId,Position,Instruction) VALUES ({0},0,'Cook')", existing.Id);
+        await db.Database.ExecuteSqlRawAsync("INSERT INTO Images (RecipeId,ContentType,Bytes) VALUES ({0},'image/png',{1})", existing.Id, new byte[] {1,2,3,4});
         var oldQuantities = new decimal[] { 2m, 0.5m, 0.001m, 100000m, 1.230m, 12345.678m };
         for (var i = 0; i < oldQuantities.Length; i++)
             await db.Database.ExecuteSqlRawAsync("INSERT INTO Ingredient (RecipeId, Position, Name, Quantity, Unit, Note) VALUES ({0},{1},{2},{3},'g','existing note')", existing.Id, i, "ingredient " + i, oldQuantities[i]);
@@ -124,6 +127,8 @@ try
         }
         var reloaded = await db.Recipes.Include(r => r.Ingredients).Include(r => r.Steps).Include(r => r.Image).SingleAsync();
         Check(reloaded.Title == "Existing" && reloaded.Servings == 2, "Recipe preserved");
+        Check(reloaded.CookbookId == LegacySetup.CookbookId && !await db.AccountSetups.AnyAsync(), "Legacy data assigned while setup remains closed");
+        Check(!await db.Users.Where(x => x.Id == LegacySetup.UserId).Select(x => x.IsActive).SingleAsync(), "Staging owner cannot authenticate");
         Check(reloaded.Steps.Single().Instruction == "Cook", "Steps preserved");
         Check(reloaded.Image!.Bytes.SequenceEqual(new byte[] { 1, 2, 3, 4 }), "Image preserved");
         Check(reloaded.Ingredients.Single(i => i.Unit == "toTaste").Quantity == "", "toTaste migrated");
@@ -140,6 +145,7 @@ finally { Microsoft.Data.Sqlite.SqliteConnection.ClearAllPools(); Directory.Dele
 await SocialImportTests.RunAsync(Check);
 await RecipeOperationTests.RunAsync(Check);
 await ImportPolicyTests.RunAsync(Check);
+await AccountBoundaryTests.RunAsync(Check);
 ArchitectureTests.Run(Check);
 Console.WriteLine($"Passed {count} domain, operation, import, process, SQLite and architecture checks.");
 

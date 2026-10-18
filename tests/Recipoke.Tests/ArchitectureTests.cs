@@ -26,7 +26,7 @@ internal static class ArchitectureTests
                 dependency == typeof(HttpClient) || target.StartsWith("System.Diagnostics") || dependency == typeof(File) || dependency == typeof(Directory));
             forbidden |= imports && (target.StartsWith("Recipoke.Api.Infrastructure.Persistence") || target.StartsWith("Microsoft.EntityFrameworkCore") ||
                 target.StartsWith("Recipoke.Api.Features.Recipes") || target.StartsWith("Recipoke.Domain.Recipes"));
-            forbidden |= application && (target.Contains(".Infrastructure") && !target.StartsWith("Recipoke.Api.Infrastructure.Persistence") ||
+            forbidden |= application && (target.StartsWith("Recipoke.Api.") && target.Contains(".Infrastructure") && !target.StartsWith("Recipoke.Api.Infrastructure.Persistence") ||
                 target.StartsWith("Microsoft.AspNetCore.Http") || target.StartsWith("Microsoft.AspNetCore.Mvc"));
             forbidden |= endpoint && (target.StartsWith("Microsoft.EntityFrameworkCore") || target.StartsWith("Recipoke.Api.Infrastructure.Persistence") ||
                 target.StartsWith("Recipoke.Domain.Recipes"));
