@@ -20,7 +20,7 @@ dotnet run --no-build --project backend/RecipeAtlas.Api -- --bootstrap-admin
 dotnet run --no-build --project backend/RecipeAtlas.Api --launch-profile http
 ```
 
-The password prompt does not echo. Choose 12–256 characters; there is no default password, email requirement or public registration route. Do not put passwords into arguments, shell history or tracked files. The CLI accepts redirected standard input for a protected secret-input channel; do not save it in the repository. A completed bootstrap is a no-op and never resets credentials. Deliberate recovery uses `--recover-admin` instead.
+The password prompt does not echo. Choose 12–256 characters; there is no default password or public registration route. The initial administrator can add an email on the Account page. Do not put passwords into arguments, shell history or tracked files. The CLI accepts redirected standard input for a protected secret-input channel; do not save it in the repository. A completed bootstrap is a no-op and never resets credentials. Deliberate recovery uses `--recover-admin` instead.
 
 Open `http://localhost:5080/health`. This is liveness, not account-setup readiness: all `/api` requests return 503 until bootstrap completes. In the matching frontend checkout:
 
@@ -87,6 +87,7 @@ dotnet build --no-restore
 dotnet run --no-build --project tests/Recipoke.Tests
 python3 tests/integration.py
 python3 tests/accounts_integration.py
+python3 tests/ui_support_integration.py
 python3 tests/test_contract_paths.py
 dotnet ef migrations list --no-connect --no-build --project backend/RecipeAtlas.Api
 dotnet ef migrations has-pending-model-changes --no-build --project backend/RecipeAtlas.Api
@@ -128,4 +129,18 @@ Bootstrap uses a terminal prompt. Recover an administrator with `docker compose 
 
 See [quantity strings/conversions](docs/quantity-strings.md) and [description-only social/text imports](docs/social-description-import.md). Website imports work without AI configuration. Social/text extraction uses the existing optional Gemini configuration and pinned yt-dlp setup. No new import capability is added by account sharing. External process networking still needs deployment-level egress isolation; HttpClient destination checks do not sandbox yt-dlp.
 
-Deferred: account deletion/promotion UI, ownership transfer/cookbook deletion, password-reset delivery, shopping lists, cooking sessions, offline sync and general edit concurrency. Existing recipe edits remain last-write-wins.
+Deferred: account deletion/promotion UI, ownership transfer, password-reset delivery, shopping lists, cooking sessions, offline sync and general edit concurrency. Existing recipe edits remain last-write-wins.
+
+## Mobile UI, profiles and membership consent
+
+The latest feature update adds cookbook descriptions/covers, account display-name/email/avatar editing, and a private cookbook-invitation inbox. New members must accept before gaining access; at most five pending invitations are displayed and the next appears after a response. Existing accepted memberships remain unchanged. Owners can permanently delete a cookbook and all its recipes/images through a separate confirmation dialog.
+
+Start the matching backend/frontend branches together after backing up the data directory. Normal startup applies `20261018100818_CookbookInvitationsAndProfiles`. **An already completed administrator setup does not need to run again, and existing Identity sessions remain usable.** The earlier single-owner upgrade instructions apply only if you are upgrading from that older version.
+
+New API additions: `PUT /api/account/profile`, `PUT/DELETE /api/account/avatar`, protected `GET /api/accounts/{id}/avatar`, `GET /api/cookbook-invitations`, `POST /api/cookbook-invitations/{id}`, `PUT/GET/DELETE /api/cookbooks/{id}/image`, `DELETE /api/cookbooks/{id}`, and owner cancellation at `DELETE /api/cookbooks/{id}/invitations/{userId}`. Cookbook creation accepts description and initial `members` (username/role); `POST .../members` now invites rather than adding immediately. Profile email is not a new login identifier and no email delivery/verification is enabled.
+
+See [ADR 013](docs/architecture/adr/013-cookbook-consent-and-profiles.md). Optional current-session upgrade check against a published pre-UI accounts version:
+
+```sh
+python3 tests/ui_upgrade.py /path/to/pre-ui-publish/Recipoke.Api.dll
+```

@@ -1,6 +1,6 @@
 # ADR 011: Eindeutige Ownership und zentrale Cookbook-Autorisierung
 
-Status: umgesetzt.
+Status: umgesetzt; die spätere Consent-Erweiterung und ausdrücklich beauftragte Cookbook-Löschung sind in [ADR 013](013-cookbook-consent-and-profiles.md) dokumentiert.
 
 ## Kontext
 
