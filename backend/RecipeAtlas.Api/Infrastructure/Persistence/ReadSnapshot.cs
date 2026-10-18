@@ -18,9 +18,18 @@ public sealed class ReadSnapshot : IAsyncDisposable
     {
         if (db.Database.CurrentTransaction is not null) return new(db);
         await db.Database.OpenConnectionAsync(ct);
-        var sqlite = ((SqliteConnection)db.Database.GetDbConnection()).BeginTransaction(deferred: true);
-        try { return new(db, sqlite, await db.Database.UseTransactionAsync(sqlite, ct)); }
-        catch { await sqlite.DisposeAsync(); await db.Database.CloseConnectionAsync(); throw; }
+        SqliteTransaction? sqlite = null;
+        try
+        {
+            sqlite = ((SqliteConnection)db.Database.GetDbConnection()).BeginTransaction(deferred: true);
+            return new(db, sqlite, await db.Database.UseTransactionAsync(sqlite, ct));
+        }
+        catch
+        {
+            if (sqlite is not null) await sqlite.DisposeAsync();
+            await db.Database.CloseConnectionAsync();
+            throw;
+        }
     }
 
     public async ValueTask DisposeAsync()
