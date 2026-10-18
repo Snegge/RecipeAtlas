@@ -4,6 +4,7 @@ namespace Recipoke.Api.Infrastructure.Persistence;
 // Framework-specific identity storage never crosses into Domain or HTTP responses.
 public sealed class AppUser : IdentityUser<Guid>
 {
+    public AccountProfileImage? ProfileImage { get; set; }
     public string DisplayName { get; set; } = "";
     public bool IsActive { get; set; } = true;
     public bool IsAdministrator { get; set; }
@@ -28,4 +29,12 @@ public static class LegacySetup
 {
     public static readonly Guid UserId = Guid.Parse("719ead20-283b-4ad3-995e-fd1e9b09b401");
     public static readonly Guid CookbookId = Guid.Parse("719ead20-283b-4ad3-995e-fd1e9b09b402");
+}
+
+public sealed class AccountProfileImage
+{
+    public Guid UserId { get; set; }
+    public byte[] Bytes { get; set; } = [];
+    public string ContentType { get; set; } = "";
+    public Guid Version { get; set; } = Guid.NewGuid();
 }

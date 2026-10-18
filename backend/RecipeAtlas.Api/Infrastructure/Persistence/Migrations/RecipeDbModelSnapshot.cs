@@ -120,6 +120,27 @@ namespace Recipoke.Api.Infrastructure.Persistence.Migrations
                     b.ToTable("Invitations");
                 });
 
+            modelBuilder.Entity("Recipoke.Api.Infrastructure.Persistence.AccountProfileImage", b =>
+                {
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<byte[]>("Bytes")
+                        .IsRequired()
+                        .HasColumnType("BLOB");
+
+                    b.Property<string>("ContentType")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("Version")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("UserId");
+
+                    b.ToTable("ProfileImages");
+                });
+
             modelBuilder.Entity("Recipoke.Api.Infrastructure.Persistence.AccountSetup", b =>
                 {
                     b.Property<int>("Id")
@@ -206,7 +227,9 @@ namespace Recipoke.Api.Infrastructure.Persistence.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("NormalizedEmail")
-                        .HasDatabaseName("EmailIndex");
+                        .IsUnique()
+                        .HasDatabaseName("EmailIndex")
+                        .HasFilter("\"NormalizedEmail\" IS NOT NULL");
 
                     b.HasIndex("NormalizedUserName")
                         .IsUnique()
@@ -219,6 +242,10 @@ namespace Recipoke.Api.Infrastructure.Persistence.Migrations
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(2000)
                         .HasColumnType("TEXT");
 
                     b.Property<string>("Name")
@@ -234,6 +261,58 @@ namespace Recipoke.Api.Infrastructure.Persistence.Migrations
                     b.HasIndex("OwnerUserId");
 
                     b.ToTable("Cookbooks");
+                });
+
+            modelBuilder.Entity("Recipoke.Domain.Cookbooks.CookbookImage", b =>
+                {
+                    b.Property<Guid>("CookbookId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<byte[]>("Bytes")
+                        .IsRequired()
+                        .HasColumnType("BLOB");
+
+                    b.Property<string>("ContentType")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("Version")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("CookbookId");
+
+                    b.ToTable("CookbookImages");
+                });
+
+            modelBuilder.Entity("Recipoke.Domain.Cookbooks.CookbookInvitation", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("CookbookId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<long>("CreatedAtUtc")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("Role")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId");
+
+                    b.HasIndex("CookbookId", "UserId")
+                        .IsUnique();
+
+                    b.ToTable("CookbookInvitations", t =>
+                        {
+                            t.HasCheckConstraint("CK_CookbookInvitation_Role", "Role IN (1, 2)");
+                        });
                 });
 
             modelBuilder.Entity("Recipoke.Domain.Cookbooks.CookbookMembership", b =>
@@ -418,6 +497,15 @@ namespace Recipoke.Api.Infrastructure.Persistence.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("Recipoke.Api.Infrastructure.Persistence.AccountProfileImage", b =>
+                {
+                    b.HasOne("Recipoke.Api.Infrastructure.Persistence.AppUser", null)
+                        .WithOne("ProfileImage")
+                        .HasForeignKey("Recipoke.Api.Infrastructure.Persistence.AccountProfileImage", "UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("Recipoke.Domain.Cookbooks.Cookbook", b =>
                 {
                     b.HasOne("Recipoke.Api.Infrastructure.Persistence.AppUser", null)
@@ -425,6 +513,32 @@ namespace Recipoke.Api.Infrastructure.Persistence.Migrations
                         .HasForeignKey("OwnerUserId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
+                });
+
+            modelBuilder.Entity("Recipoke.Domain.Cookbooks.CookbookImage", b =>
+                {
+                    b.HasOne("Recipoke.Domain.Cookbooks.Cookbook", null)
+                        .WithOne("Image")
+                        .HasForeignKey("Recipoke.Domain.Cookbooks.CookbookImage", "CookbookId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("Recipoke.Domain.Cookbooks.CookbookInvitation", b =>
+                {
+                    b.HasOne("Recipoke.Domain.Cookbooks.Cookbook", "Cookbook")
+                        .WithMany()
+                        .HasForeignKey("CookbookId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Recipoke.Api.Infrastructure.Persistence.AppUser", null)
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Cookbook");
                 });
 
             modelBuilder.Entity("Recipoke.Domain.Cookbooks.CookbookMembership", b =>
@@ -476,6 +590,16 @@ namespace Recipoke.Api.Infrastructure.Persistence.Migrations
                         .HasForeignKey("RecipeId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+                });
+
+            modelBuilder.Entity("Recipoke.Api.Infrastructure.Persistence.AppUser", b =>
+                {
+                    b.Navigation("ProfileImage");
+                });
+
+            modelBuilder.Entity("Recipoke.Domain.Cookbooks.Cookbook", b =>
+                {
+                    b.Navigation("Image");
                 });
 
             modelBuilder.Entity("Recipoke.Domain.Recipes.Recipe", b =>

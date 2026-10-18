@@ -141,7 +141,7 @@ with tempfile.TemporaryDirectory(prefix='recipoke-upgrade-') as temporary:
     finally:
         stop(p, log)
     assert old_content() == original
-    assert history()[:len(old_history)] == old_history and len(history()) == len(old_history) + 1
+    assert history()[:len(old_history)] == old_history and len(history()) == len(old_history) + 2
     assert key_hashes() == keys
     command('--recover-admin', ['upgrade-admin', recovered_password])
     p, log = start(new)

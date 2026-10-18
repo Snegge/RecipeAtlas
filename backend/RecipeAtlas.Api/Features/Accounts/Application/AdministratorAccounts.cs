@@ -9,7 +9,7 @@ public sealed class AdministratorAccounts(RecipeDb db, AccountAccess access, Use
     {
         await access.RequireAdministratorAsync(ct);
         return await db.Users.AsNoTracking().OrderBy(x => x.NormalizedUserName)
-            .Select(x => new AccountResponse(x.Id, x.UserName!, x.DisplayName, x.IsActive, x.IsAdministrator)).ToListAsync(ct);
+            .Select(x => new AccountResponse(x.Id, x.UserName!, x.DisplayName, x.IsActive, x.IsAdministrator, x.Email, x.ProfileImage == null ? null : "/api/accounts/" + x.Id + "/avatar?v=" + x.ProfileImage.Version)).ToListAsync(ct);
     }
     public async Task SetStatusAsync(Guid id, bool active, CancellationToken ct)
     {

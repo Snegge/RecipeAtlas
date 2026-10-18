@@ -1,3 +1,5 @@
+using System.ComponentModel.DataAnnotations;
+using Microsoft.EntityFrameworkCore;
 using System.Text.RegularExpressions;
 using Microsoft.AspNetCore.Identity;
 namespace Recipoke.Api.Features.Accounts.Application;
@@ -22,8 +24,20 @@ public static class AccountValidation
     public static void RequireSuccess(IdentityResult result)
     {
         if (!result.Succeeded) throw new OperationFailure(400, "Check your account details.", errors:
-            result.Errors.GroupBy(x => x.Code.StartsWith("Duplicate") || x.Code.Contains("UserName") ? "username" : "password")
+            result.Errors.GroupBy(x => x.Code.Contains("Email") ? "email" : x.Code.StartsWith("Duplicate") || x.Code.Contains("UserName") ? "username" : "password")
                 .ToDictionary(g => g.Key, g => g.Select(x => x.Description).ToArray()));
     }
-    public static CurrentUserResponse Response(AppUser user) => new(user.Id, user.UserName!, user.DisplayName, user.IsAdministrator);
+    public static string ContactEmail(string? input)
+    {
+        var email = input?.Trim();
+        if (string.IsNullOrWhiteSpace(email) || email.Length > 254 || !new EmailAddressAttribute().IsValid(email))
+            throw new OperationFailure(400, "Enter a valid email address.", errors: new() { ["email"] = ["Enter a valid email address."] });
+        return email;
+    }
+    public static async Task CheckEmailAvailableAsync(RecipeDb db, ILookupNormalizer normalizer, string email, Guid? except, CancellationToken ct)
+    {
+        var normalized = normalizer.NormalizeEmail(email);
+        if (await db.Users.AnyAsync(x => x.NormalizedEmail == normalized && x.Id != except, ct))
+            throw new OperationFailure(400, "This email address is already in use.", errors: new() { ["email"] = ["This email address is already in use."] });
+    }
 }

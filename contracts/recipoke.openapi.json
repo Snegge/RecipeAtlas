@@ -3,8 +3,20 @@
     "schemas": {
       "AccountResponse": {
         "properties": {
+          "avatarUrl": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
           "displayName": {
             "type": "string"
+          },
+          "email": {
+            "type": [
+              "null",
+              "string"
+            ]
           },
           "id": {
             "format": "uuid",
@@ -73,9 +85,58 @@
         ],
         "type": "object"
       },
+      "CookbookInvitationResponse": {
+        "properties": {
+          "cookbookId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "cookbookName": {
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "imageUrl": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "ownerAvatarUrl": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "ownerDisplayName": {
+            "type": "string"
+          },
+          "role": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "cookbookId",
+          "cookbookName",
+          "role",
+          "ownerDisplayName",
+          "ownerAvatarUrl",
+          "imageUrl"
+        ],
+        "type": "object"
+      },
       "CookbookNameInput": {
         "additionalProperties": false,
         "properties": {
+          "description": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
           "name": {
             "type": [
               "null",
@@ -90,12 +151,33 @@
       },
       "CookbookResponse": {
         "properties": {
+          "description": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
           "id": {
             "format": "uuid",
             "type": "string"
           },
+          "imageUrl": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
           "name": {
             "type": "string"
+          },
+          "recipeCount": {
+            "default": 0,
+            "format": "int32",
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ]
           },
           "role": {
             "type": "string"
@@ -105,6 +187,36 @@
           "id",
           "name",
           "role"
+        ],
+        "type": "object"
+      },
+      "CreateCookbookInput": {
+        "additionalProperties": false,
+        "properties": {
+          "description": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "members": {
+            "items": {
+              "$ref": "#/components/schemas/AddMemberInput"
+            },
+            "type": [
+              "null",
+              "array"
+            ]
+          },
+          "name": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        },
+        "required": [
+          "name"
         ],
         "type": "object"
       },
@@ -125,8 +237,20 @@
       },
       "CurrentUserResponse": {
         "properties": {
+          "avatarUrl": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
           "displayName": {
             "type": "string"
+          },
+          "email": {
+            "type": [
+              "null",
+              "string"
+            ]
           },
           "id": {
             "format": "uuid",
@@ -393,10 +517,20 @@
       },
       "MemberResponse": {
         "properties": {
+          "avatarUrl": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
           "displayName": {
             "type": "string"
           },
           "isActive": {
+            "type": "boolean"
+          },
+          "isPending": {
+            "default": false,
             "type": "boolean"
           },
           "role": {
@@ -795,6 +929,12 @@
               "string"
             ]
           },
+          "email": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
           "password": {
             "type": [
               "null",
@@ -819,6 +959,18 @@
           "username",
           "displayName",
           "password"
+        ],
+        "type": "object"
+      },
+      "RespondToCookbookInvitationInput": {
+        "additionalProperties": false,
+        "properties": {
+          "accept": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "accept"
         ],
         "type": "object"
       },
@@ -857,6 +1009,28 @@
           "label"
         ],
         "type": "object"
+      },
+      "UpdateProfileInput": {
+        "additionalProperties": false,
+        "properties": {
+          "displayName": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "email": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        },
+        "required": [
+          "displayName",
+          "email"
+        ],
+        "type": "object"
       }
     },
     "securitySchemes": {
@@ -874,6 +1048,186 @@
   },
   "openapi": "3.1.1",
   "paths": {
+    "/api/account/avatar": {
+      "delete": {
+        "parameters": [
+          {
+            "description": "Existing browser write protection; value must be 1.",
+            "in": "header",
+            "name": "X-RecipeAtlas",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "401": {
+            "description": "Active account authentication required"
+          },
+          "403": {
+            "description": "Insufficient account or cookbook permissions"
+          },
+          "503": {
+            "description": "Administrator setup or required provider configuration is missing"
+          }
+        },
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "tags": [
+          "Recipoke.Api"
+        ]
+      },
+      "put": {
+        "parameters": [
+          {
+            "description": "Existing browser write protection; value must be 1.",
+            "in": "header",
+            "name": "X-RecipeAtlas",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/octet-stream": {
+              "schema": {
+                "format": "binary",
+                "type": "string"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CurrentUserResponse"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "401": {
+            "description": "Active account authentication required"
+          },
+          "403": {
+            "description": "Insufficient account or cookbook permissions"
+          },
+          "503": {
+            "description": "Administrator setup or required provider configuration is missing"
+          }
+        },
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "tags": [
+          "Recipoke.Api"
+        ]
+      }
+    },
+    "/api/account/profile": {
+      "put": {
+        "parameters": [
+          {
+            "description": "Existing browser write protection; value must be 1.",
+            "in": "header",
+            "name": "X-RecipeAtlas",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateProfileInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CurrentUserResponse"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "401": {
+            "description": "Active account authentication required"
+          },
+          "403": {
+            "description": "Insufficient account or cookbook permissions"
+          },
+          "503": {
+            "description": "Administrator setup or required provider configuration is missing"
+          }
+        },
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "tags": [
+          "Recipoke.Api"
+        ]
+      }
+    },
+    "/api/accounts/{id}/avatar": {
+      "get": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "401": {
+            "description": "Active account authentication required"
+          },
+          "403": {
+            "description": "Insufficient account or cookbook permissions"
+          },
+          "503": {
+            "description": "Administrator setup or required provider configuration is missing"
+          }
+        },
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "tags": [
+          "Recipoke.Api"
+        ]
+      }
+    },
     "/api/admin/accounts": {
       "get": {
         "responses": {
@@ -1266,6 +1620,98 @@
         ]
       }
     },
+    "/api/cookbook-invitations": {
+      "get": {
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/CookbookInvitationResponse"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "401": {
+            "description": "Active account authentication required"
+          },
+          "403": {
+            "description": "Insufficient account or cookbook permissions"
+          },
+          "503": {
+            "description": "Administrator setup or required provider configuration is missing"
+          }
+        },
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "tags": [
+          "Recipoke.Api"
+        ]
+      }
+    },
+    "/api/cookbook-invitations/{id}": {
+      "post": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Existing browser write protection; value must be 1.",
+            "in": "header",
+            "name": "X-RecipeAtlas",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RespondToCookbookInvitationInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "401": {
+            "description": "Active account authentication required"
+          },
+          "403": {
+            "description": "Insufficient account or cookbook permissions"
+          },
+          "503": {
+            "description": "Administrator setup or required provider configuration is missing"
+          }
+        },
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "tags": [
+          "Recipoke.Api"
+        ]
+      }
+    },
     "/api/cookbooks": {
       "get": {
         "responses": {
@@ -1317,7 +1763,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/CookbookNameInput"
+                "$ref": "#/components/schemas/CreateCookbookInput"
               }
             }
           },
@@ -1910,6 +2356,53 @@
       }
     },
     "/api/cookbooks/{id}": {
+      "delete": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Existing browser write protection; value must be 1.",
+            "in": "header",
+            "name": "X-RecipeAtlas",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "401": {
+            "description": "Active account authentication required"
+          },
+          "403": {
+            "description": "Insufficient account or cookbook permissions"
+          },
+          "404": {
+            "description": "Resource missing or outside accessible cookbooks"
+          },
+          "503": {
+            "description": "Administrator setup or required provider configuration is missing"
+          }
+        },
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "tags": [
+          "Recipoke.Api"
+        ]
+      },
       "get": {
         "parameters": [
           {
@@ -1986,6 +2479,215 @@
           },
           "required": true
         },
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "401": {
+            "description": "Active account authentication required"
+          },
+          "403": {
+            "description": "Insufficient account or cookbook permissions"
+          },
+          "404": {
+            "description": "Resource missing or outside accessible cookbooks"
+          },
+          "503": {
+            "description": "Administrator setup or required provider configuration is missing"
+          }
+        },
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "tags": [
+          "Recipoke.Api"
+        ]
+      }
+    },
+    "/api/cookbooks/{id}/image": {
+      "delete": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Existing browser write protection; value must be 1.",
+            "in": "header",
+            "name": "X-RecipeAtlas",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "401": {
+            "description": "Active account authentication required"
+          },
+          "403": {
+            "description": "Insufficient account or cookbook permissions"
+          },
+          "404": {
+            "description": "Resource missing or outside accessible cookbooks"
+          },
+          "503": {
+            "description": "Administrator setup or required provider configuration is missing"
+          }
+        },
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "tags": [
+          "Recipoke.Api"
+        ]
+      },
+      "get": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "401": {
+            "description": "Active account authentication required"
+          },
+          "403": {
+            "description": "Insufficient account or cookbook permissions"
+          },
+          "404": {
+            "description": "Resource missing or outside accessible cookbooks"
+          },
+          "503": {
+            "description": "Administrator setup or required provider configuration is missing"
+          }
+        },
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "tags": [
+          "Recipoke.Api"
+        ]
+      },
+      "put": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Existing browser write protection; value must be 1.",
+            "in": "header",
+            "name": "X-RecipeAtlas",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/octet-stream": {
+              "schema": {
+                "format": "binary",
+                "type": "string"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CookbookResponse"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "401": {
+            "description": "Active account authentication required"
+          },
+          "403": {
+            "description": "Insufficient account or cookbook permissions"
+          },
+          "404": {
+            "description": "Resource missing or outside accessible cookbooks"
+          },
+          "503": {
+            "description": "Administrator setup or required provider configuration is missing"
+          }
+        },
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "tags": [
+          "Recipoke.Api"
+        ]
+      }
+    },
+    "/api/cookbooks/{id}/invitations/{userId}": {
+      "delete": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "userId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Existing browser write protection; value must be 1.",
+            "in": "header",
+            "name": "X-RecipeAtlas",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "responses": {
           "204": {
             "description": "No Content"

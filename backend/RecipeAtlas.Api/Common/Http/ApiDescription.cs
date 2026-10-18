@@ -17,7 +17,9 @@ public static class ApiDescription
                 document.Components.SecuritySchemes ??= new Dictionary<string, IOpenApiSecurityScheme>();
                 document.Components.SecuritySchemes["sessionCookie"] = new OpenApiSecurityScheme
                 {
-                    Type = SecuritySchemeType.ApiKey, In = ParameterLocation.Cookie, Name = "Recipoke.Session"
+                    Type = SecuritySchemeType.ApiKey,
+                    In = ParameterLocation.Cookie,
+                    Name = "Recipoke.Session"
                 };
                 return Task.CompletedTask;
             });
@@ -37,7 +39,9 @@ public static class ApiDescription
                     operation.Parameters ??= [];
                     operation.Parameters.Add(new OpenApiParameter
                     {
-                        Name = "X-RecipeAtlas", In = ParameterLocation.Header, Required = true,
+                        Name = "X-RecipeAtlas",
+                        In = ParameterLocation.Header,
+                        Required = true,
                         Description = "Existing browser write protection; value must be 1.",
                         Schema = new OpenApiSchema { Type = JsonSchemaType.String }
                     });
@@ -52,7 +56,7 @@ public static class ApiDescription
                         operation.Responses.TryAdd("404", new OpenApiResponse { Description = "Resource missing or outside accessible cookbooks" });
                 }
                 // Description only: Accepts metadata would change raw-image request validation.
-                if (method == "PUT" && path.EndsWith("/image"))
+                if (method == "PUT" && (path.EndsWith("/image") || path.EndsWith("/avatar")))
                     operation.RequestBody = new OpenApiRequestBody
                     {
                         Content = new Dictionary<string, OpenApiMediaType>

@@ -12,11 +12,25 @@ public sealed class RecipeDb(DbContextOptions<RecipeDb> options) : IdentityUserC
     public DbSet<RecipeImage> Images => Set<RecipeImage>();
     public DbSet<Cookbook> Cookbooks => Set<Cookbook>();
     public DbSet<CookbookMembership> Memberships => Set<CookbookMembership>();
+    public DbSet<CookbookImage> CookbookImages => Set<CookbookImage>();
+    public DbSet<CookbookInvitation> CookbookInvitations => Set<CookbookInvitation>();
+    public DbSet<AccountProfileImage> ProfileImages => Set<AccountProfileImage>();
     public DbSet<AccountInvitation> Invitations => Set<AccountInvitation>();
     public DbSet<AccountSetup> AccountSetups => Set<AccountSetup>();
     protected override void OnModelCreating(ModelBuilder model)
     {
         base.OnModelCreating(model);
+        model.Entity<AppUser>().HasIndex(x => x.NormalizedEmail).IsUnique().HasFilter("\"NormalizedEmail\" IS NOT NULL");
+        model.Entity<AppUser>().HasOne(x => x.ProfileImage).WithOne().HasForeignKey<AccountProfileImage>(x => x.UserId).OnDelete(DeleteBehavior.Cascade);
+        model.Entity<AccountProfileImage>().HasKey(x => x.UserId);
+        model.Entity<Cookbook>().Property(x => x.Description).HasMaxLength(2000);
+        model.Entity<Cookbook>().HasOne(x => x.Image).WithOne().HasForeignKey<CookbookImage>(x => x.CookbookId).OnDelete(DeleteBehavior.Cascade);
+        model.Entity<CookbookImage>().HasKey(x => x.CookbookId);
+        model.Entity<CookbookInvitation>().HasIndex(x => new { x.CookbookId, x.UserId }).IsUnique();
+        model.Entity<CookbookInvitation>().Property(x => x.CreatedAtUtc).HasConversion<long>();
+        model.Entity<CookbookInvitation>().HasOne(x => x.Cookbook).WithMany().HasForeignKey(x => x.CookbookId).OnDelete(DeleteBehavior.Cascade);
+        model.Entity<CookbookInvitation>().HasOne<AppUser>().WithMany().HasForeignKey(x => x.UserId).OnDelete(DeleteBehavior.Restrict);
+        model.Entity<CookbookInvitation>().ToTable(t => t.HasCheckConstraint("CK_CookbookInvitation_Role", "Role IN (1, 2)"));
         model.Entity<AppUser>().Property(x => x.DisplayName).HasMaxLength(100);
         model.Entity<AppUser>().Property(x => x.UserName).IsRequired();
         model.Entity<AppUser>().Property(x => x.NormalizedUserName).IsRequired();

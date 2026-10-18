@@ -4,7 +4,7 @@ using Microsoft.AspNetCore.Identity;
 using Recipoke.Api.Features.Accounts.Application;
 namespace Recipoke.Api.Features.Authentication.Application;
 
-public sealed class AccountAuthentication(RecipeDb db, UserManager<AppUser> users, SignInManager<AppUser> signIn, AccountAccess access)
+public sealed class AccountAuthentication(RecipeDb db, UserManager<AppUser> users, SignInManager<AppUser> signIn, AccountAccess access, AccountProfiles profiles)
 {
     public async Task<Guid?> AuthenticateAsync(string? username, string? password, CancellationToken ct)
     {
@@ -18,7 +18,7 @@ public sealed class AccountAuthentication(RecipeDb db, UserManager<AppUser> user
         await tx.CommitAsync(ct);
         return result.Succeeded ? user.Id : null;
     }
-    public async Task<CurrentUserResponse> CurrentAsync(CancellationToken ct) => AccountValidation.Response(await access.RequireActiveAsync(ct));
+    public async Task<CurrentUserResponse> CurrentAsync(CancellationToken ct) => await profiles.CurrentAsync(ct);
     public async Task<Guid> ChangePasswordAsync(ChangePasswordInput input, CancellationToken ct)
     {
         AccountValidation.Password(input.NewPassword);

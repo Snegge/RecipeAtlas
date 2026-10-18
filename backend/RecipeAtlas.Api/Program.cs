@@ -23,7 +23,8 @@ var dataDirectory = Path.GetFullPath(builder.Configuration["DataDirectory"] ?? "
 Directory.CreateDirectory(dataDirectory);
 var connection = new SqliteConnectionStringBuilder
 {
-    DataSource = Path.Combine(dataDirectory, "recipes.db"), ForeignKeys = true
+    DataSource = Path.Combine(dataDirectory, "recipes.db"),
+    ForeignKeys = true
 }.ToString();
 
 builder.WebHost.ConfigureKestrel(options => options.Limits.MaxRequestBodySize = 6 * 1024 * 1024);
@@ -60,6 +61,8 @@ builder.Services.AddScoped<ICurrentUser, HttpCurrentUser>();
 builder.Services.AddScoped<ISessionCookies, IdentitySessions>();
 builder.Services.AddScoped<AccountAccess>(); builder.Services.AddScoped<AccountAuthentication>();
 builder.Services.AddScoped<AdministratorSetup>(); builder.Services.AddScoped<AdministratorAccounts>();
+builder.Services.AddScoped<AccountProfiles>();
+builder.Services.AddScoped<CookbookInvitations>(); builder.Services.AddScoped<CookbookMedia>();
 builder.Services.AddScoped<Invitations>(); builder.Services.AddScoped<CookbookAccess>(); builder.Services.AddScoped<CookbookOperations>();
 builder.Services.AddAuthorization();
 builder.Services.AddRateLimiter(options =>

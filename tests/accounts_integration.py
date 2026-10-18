@@ -41,6 +41,7 @@ with tempfile.TemporaryDirectory(prefix='recipoke-accounts-') as data:
         request_headers = dict(headers or {})
         if csrf: request_headers['X-RecipeAtlas'] = '1'
         if isinstance(body, dict):
+            if path == '/api/invitations/redeem':body.setdefault('email',secrets.token_hex(8)+'@example.test')
             body = json.dumps(body).encode(); request_headers['Content-Type'] = 'application/json'
         request = urllib.request.Request(base + path, data=body, method=method, headers=request_headers)
         try: response = opener.open(request, timeout=40)
@@ -75,6 +76,11 @@ with tempfile.TemporaryDirectory(prefix='recipoke-accounts-') as data:
         assert created['link'].startswith('https://recipoke.example/invite#token=')
         token = urllib.parse.parse_qs(urllib.parse.urlsplit(created['link']).fragment)['token'][0]
         return created['invitation']['id'], token
+
+    def accept_book(opener,book_id):
+        items=call(opener,'GET','/api/cookbook-invitations',200)
+        invitation=next(item for item in items if item['cookbookId']==book_id)
+        call(opener,'POST','/api/cookbook-invitations/'+invitation['id'],204,{'accept':True})
 
     def register(admin, username):
         invitation_id, token = invite(admin)
@@ -114,8 +120,8 @@ with tempfile.TemporaryDirectory(prefix='recipoke-accounts-') as data:
         books = call(owner2, 'GET', '/api/cookbooks', 200); assert len(books) == 1 and books[0]['role'] == 'Owner'
         book = books[0]['id']; prefix = f'/api/cookbooks/{book}'
         call(admin, 'GET', prefix, 404)  # Administration is not cookbook ownership.
-        call(owner2, 'POST', prefix + '/members', 204, {'username': 'EDITOR', 'role': 'Editor'})
-        call(owner2, 'POST', prefix + '/members', 204, {'username': 'viewer', 'role': 'Viewer'})
+        call(owner2, 'POST', prefix + '/members', 204, {'username': 'EDITOR', 'role': 'Editor'});accept_book(editor,book)
+        call(owner2, 'POST', prefix + '/members', 204, {'username': 'viewer', 'role': 'Viewer'});accept_book(viewer,book)
         call(owner2, 'POST', prefix + '/members', 409, {'username': 'editor', 'role': 'Viewer'})
         call(owner2, 'POST', prefix + '/members', 400, {'username': 'stranger', 'role': 'Owner'})
         call(owner2, 'POST', prefix + '/members', 404, {'username': 'edit', 'role': 'Viewer'})
@@ -169,7 +175,7 @@ with tempfile.TemporaryDirectory(prefix='recipoke-accounts-') as data:
         call(admin, 'PUT', '/api/admin/accounts/' + admin_me['id'] + '/status', 403, {'isActive': False})
         call(admin, 'PUT', '/api/admin/accounts/' + viewer_me['id'] + '/status', 400, {})
         # Active members keep access when their owner is deactivated.
-        call(owner2, 'POST', prefix + '/members', 204, {'username': 'viewer', 'role': 'Viewer'})
+        call(owner2, 'POST', prefix + '/members', 204, {'username': 'viewer', 'role': 'Viewer'});accept_book(viewer,book)
         call(admin, 'PUT', '/api/admin/accounts/' + owner_me['id'] + '/status', 204, {'isActive': False})
         call(viewer, 'GET', recipe_path, 200)
         call(editor, 'POST', f'/api/cookbooks/{cookbook2}/members', 404, {'username':'owner2','role':'Viewer'})
@@ -205,7 +211,7 @@ with tempfile.TemporaryDirectory(prefix='recipoke-accounts-') as data:
         # Concurrent attempts, including revocation: the first committed transaction wins.
         race_id, race_token = invite(admin)
         def redeem_race(username):
-            data_json = {'token': race_token, 'username': username, 'displayName': username, 'password': password}
+            data_json = {'email':secrets.token_hex(8)+'@example.test','token': race_token, 'username': username, 'displayName': username, 'password': password}
             request = urllib.request.Request(base + '/api/invitations/redeem', data=json.dumps(data_json).encode(),
                                              headers={'Content-Type': 'application/json', 'X-RecipeAtlas': '1'})
             try: return urllib.request.urlopen(request, timeout=40).status
@@ -219,7 +225,9 @@ with tempfile.TemporaryDirectory(prefix='recipoke-accounts-') as data:
         revoke_race_id, revoke_race_token = invite(admin)
         def raw_request(opener, method, path, body=None):
             headers={'X-RecipeAtlas':'1'}
-            if body is not None: body=json.dumps(body).encode();headers['Content-Type']='application/json'
+            if body is not None:
+                if path=='/api/invitations/redeem':body.setdefault('email',secrets.token_hex(8)+'@example.test')
+                body=json.dumps(body).encode();headers['Content-Type']='application/json'
             req=urllib.request.Request(base+path,data=body,method=method,headers=headers)
             try:
                 with opener.open(req,timeout=40) as response:return response.status

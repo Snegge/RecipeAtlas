@@ -89,7 +89,7 @@ internal static class AccountBoundaryTests
             await using var db = new RecipeDb(options);
             var accounts = new AccountAccess(db, new TestCurrentUser(LegacySetup.UserId));
             var access = new CookbookAccess(db, accounts);
-            await new CookbookOperations(db, accounts, access, new UpperInvariantLookupNormalizer()).ChangeMemberAsync(bookId, editorId, "Viewer", false, default);
+            await new CookbookOperations(db, accounts, access, new CookbookInvitations(db, accounts, access, new UpperInvariantLookupNormalizer(), TimeProvider.System)).ChangeMemberAsync(bookId, editorId, "Viewer", false, default);
         });
         try { await Task.Delay(100); check(!downgrade.IsCompleted, "Permission change cannot overtake an authorized write transaction"); }
         finally { pause.Release.TrySetResult(); }
