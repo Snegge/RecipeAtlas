@@ -5,6 +5,7 @@ public enum CookbookPermission { Read, Write, Manage }
 public sealed class Cookbook
 {
     public Guid Id { get; set; } = Guid.NewGuid();
+    public Guid Version { get; set; } = Guid.NewGuid();
     public string Name { get; set; } = "";
     public string? Description { get; set; }
     public CookbookImage? Image { get; set; }

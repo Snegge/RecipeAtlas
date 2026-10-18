@@ -1,3 +1,4 @@
+from versioned_requests import with_current_version
 """Invitation, session and cookbook isolation checks. Synthetic SQLite; no external providers."""
 import base64
 from concurrent.futures import ThreadPoolExecutor
@@ -40,6 +41,7 @@ with tempfile.TemporaryDirectory(prefix='recipoke-accounts-') as data:
         global checks
         request_headers = dict(headers or {})
         if csrf: request_headers['X-RecipeAtlas'] = '1'
+        body, request_headers = with_current_version(opener, base, method, path, body, request_headers)
         if isinstance(body, dict):
             if path == '/api/invitations/redeem':body.setdefault('email',secrets.token_hex(8)+'@example.test')
             body = json.dumps(body).encode(); request_headers['Content-Type'] = 'application/json'
@@ -120,8 +122,8 @@ with tempfile.TemporaryDirectory(prefix='recipoke-accounts-') as data:
         books = call(owner2, 'GET', '/api/cookbooks', 200); assert len(books) == 1 and books[0]['role'] == 'Owner'
         book = books[0]['id']; prefix = f'/api/cookbooks/{book}'
         call(admin, 'GET', prefix, 404)  # Administration is not cookbook ownership.
-        call(owner2, 'POST', prefix + '/members', 204, {'username': 'EDITOR', 'role': 'Editor'});accept_book(editor,book)
-        call(owner2, 'POST', prefix + '/members', 204, {'username': 'viewer', 'role': 'Viewer'});accept_book(viewer,book)
+        call(owner2, 'POST', prefix + '/members', 200, {'username': 'EDITOR', 'role': 'Editor'});accept_book(editor,book)
+        call(owner2, 'POST', prefix + '/members', 200, {'username': 'viewer', 'role': 'Viewer'});accept_book(viewer,book)
         call(owner2, 'POST', prefix + '/members', 409, {'username': 'editor', 'role': 'Viewer'})
         call(owner2, 'POST', prefix + '/members', 400, {'username': 'stranger', 'role': 'Owner'})
         call(owner2, 'POST', prefix + '/members', 404, {'username': 'edit', 'role': 'Viewer'})
@@ -129,7 +131,7 @@ with tempfile.TemporaryDirectory(prefix='recipoke-accounts-') as data:
         call(viewer, 'PUT', prefix, 403, {'name': 'Denied'})
         call(owner2, 'POST', prefix + '/leave', 403)
         call(owner2, 'DELETE', prefix + '/members/' + owner_me['id'], 403)
-        call(owner2, 'PUT', prefix, 204, {'name': 'Shared cookbook'})
+        call(owner2, 'PUT', prefix, 200, {'name': 'Shared cookbook'})
         cookbook2 = call(editor, 'POST', '/api/cookbooks', 201, {'name': 'Editor private'})['id']
         payload = json.loads((ROOT / 'sample-recipe.json').read_text())
         recipe = call(editor, 'POST', prefix + '/recipes', 201, payload)
@@ -153,9 +155,9 @@ with tempfile.TemporaryDirectory(prefix='recipoke-accounts-') as data:
         # Import remains draft-only and does not require a writable cookbook.
         missing_ai = call(viewer, 'POST', '/api/recipes/import', 503, {'text': 'Eggs\n2 eggs\nCook.'})
         assert missing_ai['code'] == 'ai_not_configured'
-        call(owner2, 'PUT', prefix + '/members/' + editor_me['id'], 204, {'role': 'Viewer'})
+        call(owner2, 'PUT', prefix + '/members/' + editor_me['id'], 200, {'role': 'Viewer'})
         call(editor, 'PUT', recipe_path, 403, payload)
-        call(owner2, 'DELETE', prefix + '/members/' + editor_me['id'], 204)
+        call(owner2, 'DELETE', prefix + '/members/' + editor_me['id'], 200)
         call(editor, 'GET', recipe_path, 404)
         call(viewer, 'POST', prefix + '/leave', 204)
         call(viewer, 'GET', prefix, 404)
@@ -175,7 +177,7 @@ with tempfile.TemporaryDirectory(prefix='recipoke-accounts-') as data:
         call(admin, 'PUT', '/api/admin/accounts/' + admin_me['id'] + '/status', 403, {'isActive': False})
         call(admin, 'PUT', '/api/admin/accounts/' + viewer_me['id'] + '/status', 400, {})
         # Active members keep access when their owner is deactivated.
-        call(owner2, 'POST', prefix + '/members', 204, {'username': 'viewer', 'role': 'Viewer'});accept_book(viewer,book)
+        call(owner2, 'POST', prefix + '/members', 200, {'username': 'viewer', 'role': 'Viewer'});accept_book(viewer,book)
         call(admin, 'PUT', '/api/admin/accounts/' + owner_me['id'] + '/status', 204, {'isActive': False})
         call(viewer, 'GET', recipe_path, 200)
         call(editor, 'POST', f'/api/cookbooks/{cookbook2}/members', 404, {'username':'owner2','role':'Viewer'})

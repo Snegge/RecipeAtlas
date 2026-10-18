@@ -134,14 +134,14 @@ with tempfile.TemporaryDirectory(prefix='recipoke-upgrade-') as temporary:
         path = f'/api/cookbooks/{books[0]["id"]}/recipes/{recipe["id"]}'
         after = request('GET', path, 200)
         assert after['imageUrl'] == path + '/image'
-        assert {k: v for k, v in before.items() if k != 'imageUrl'} == {k: v for k, v in after.items() if k != 'imageUrl'}
+        assert {k: v for k, v in before.items() if k not in ('imageUrl', 'version')} == {k: v for k, v in after.items() if k not in ('imageUrl', 'version')}
         assert request('GET', path + '/image', 200) == image
         assert request('GET', path.rsplit('/', 1)[0], 200)['total'] == 1
         request('GET', f'/api/recipes/{recipe["id"]}', 404)
     finally:
         stop(p, log)
     assert old_content() == original
-    assert history()[:len(old_history)] == old_history and len(history()) == len(old_history) + 2
+    assert history()[:len(old_history)] == old_history and len(history()) == len(old_history) + 3
     assert key_hashes() == keys
     command('--recover-admin', ['upgrade-admin', recovered_password])
     p, log = start(new)

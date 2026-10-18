@@ -146,6 +146,7 @@ await SocialImportTests.RunAsync(Check);
 await RecipeOperationTests.RunAsync(Check);
 await ImportPolicyTests.RunAsync(Check);
 await AccountBoundaryTests.RunAsync(Check);
+await ConcurrencyTests.RunAsync(Check);
 ArchitectureTests.Run(Check);
 Console.WriteLine($"Passed {count} domain, operation, import, process, SQLite and architecture checks.");
 

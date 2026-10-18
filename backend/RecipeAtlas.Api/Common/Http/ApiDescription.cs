@@ -55,6 +55,27 @@ public static class ApiDescription
                     if (path.Contains("cookbooks/{"))
                         operation.Responses.TryAdd("404", new OpenApiResponse { Description = "Resource missing or outside accessible cookbooks" });
                 }
+                var versioned = (path.StartsWith("api/cookbooks/{") &&
+                    (method is "PUT" or "DELETE" || (method == "POST" && (path.EndsWith("/members") || path.EndsWith("/leave"))))) ||
+                    (path.StartsWith("api/cookbook-invitations/{") && method == "POST");
+                if (versioned)
+                {
+                    var header = method == "DELETE" || (method == "PUT" && path.EndsWith("/image"));
+                    operation.Responses ??= new();
+                    operation.Responses.TryAdd("428", new OpenApiResponse { Description = "concurrency_precondition_required: reload and submit a version" });
+                    operation.Responses.TryAdd("400", new OpenApiResponse { Description = "Malformed version or invalid command" });
+                    operation.Responses.TryAdd(header ? "412" : "409", new OpenApiResponse { Description = "concurrency_conflict: review current authorized state; no automatic overwrite" });
+                    if (header)
+                    {
+                        operation.Parameters ??= [];
+                        operation.Parameters.Add(new OpenApiParameter
+                        {
+                            Name = "If-Match", In = ParameterLocation.Header, Required = true,
+                            Description = "One quoted strong aggregate version (UUID). Weak tags, lists and wildcard overwrite are rejected. Required also for raw binary photo PUT.",
+                            Schema = new OpenApiSchema { Type = JsonSchemaType.String }
+                        });
+                    }
+                }
                 // Description only: Accepts metadata would change raw-image request validation.
                 if (method == "PUT" && (path.EndsWith("/image") || path.EndsWith("/avatar")))
                     operation.RequestBody = new OpenApiRequestBody

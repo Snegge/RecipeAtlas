@@ -3,6 +3,7 @@ namespace Recipoke.Domain.Recipes;
 public sealed class Recipe
 {
     public Guid Id { get; set; } = Guid.NewGuid();
+    public Guid Version { get; set; } = Guid.NewGuid();
     public Guid CookbookId { get; set; }
     public string Title { get; set; } = "";
     public string? Description { get; set; }
