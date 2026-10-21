@@ -7,6 +7,7 @@ public sealed class GetRecipe(RecipeDb db, CookbookAccess access)
 {
     public async Task<RecipeResponse?> ExecuteAsync(Guid cookbookId, Guid id, CancellationToken ct)
     {
+        await using var snapshot = await ReadSnapshot.BeginAsync(db, ct);
         await access.RequireAsync(cookbookId, CookbookPermission.Read, ct);
         var recipe = await db.Recipes.Include(x => x.Ingredients).Include(x => x.Steps)
             .AsSplitQuery().AsNoTracking().SingleOrDefaultAsync(x => x.Id == id && x.CookbookId == cookbookId, ct);

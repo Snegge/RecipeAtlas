@@ -44,6 +44,12 @@
       "AddMemberInput": {
         "additionalProperties": false,
         "properties": {
+          "expectedVersion": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
           "role": {
             "type": [
               "null",
@@ -94,6 +100,10 @@
           "cookbookName": {
             "type": "string"
           },
+          "cookbookVersion": {
+            "format": "uuid",
+            "type": "string"
+          },
           "id": {
             "format": "uuid",
             "type": "string"
@@ -124,7 +134,26 @@
           "role",
           "ownerDisplayName",
           "ownerAvatarUrl",
-          "imageUrl"
+          "imageUrl",
+          "cookbookVersion"
+        ],
+        "type": "object"
+      },
+      "CookbookMembersResponse": {
+        "properties": {
+          "cookbook": {
+            "$ref": "#/components/schemas/CookbookResponse"
+          },
+          "members": {
+            "items": {
+              "$ref": "#/components/schemas/MemberResponse"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "cookbook",
+          "members"
         ],
         "type": "object"
       },
@@ -132,6 +161,12 @@
         "additionalProperties": false,
         "properties": {
           "description": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "expectedVersion": {
             "type": [
               "null",
               "string"
@@ -181,12 +216,17 @@
           },
           "role": {
             "type": "string"
+          },
+          "version": {
+            "format": "uuid",
+            "type": "string"
           }
         },
         "required": [
           "id",
           "name",
-          "role"
+          "role",
+          "version"
         ],
         "type": "object"
       },
@@ -271,6 +311,21 @@
         ],
         "type": "object"
       },
+      "ExpectedVersionInput": {
+        "additionalProperties": false,
+        "properties": {
+          "expectedVersion": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        },
+        "required": [
+          "expectedVersion"
+        ],
+        "type": "object"
+      },
       "HttpValidationProblemDetails": {
         "properties": {
           "detail": {
@@ -321,11 +376,24 @@
       "ImageResponse": {
         "properties": {
           "imageUrl": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "updatedAtUtc": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "version": {
+            "format": "uuid",
             "type": "string"
           }
         },
         "required": [
-          "imageUrl"
+          "imageUrl",
+          "version",
+          "updatedAtUtc"
         ],
         "type": "object"
       },
@@ -556,6 +624,12 @@
       "MemberRoleInput": {
         "additionalProperties": false,
         "properties": {
+          "expectedVersion": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
           "role": {
             "type": [
               "null",
@@ -760,6 +834,12 @@
               "string"
             ]
           },
+          "expectedVersion": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
           "ingredients": {
             "items": {
               "$ref": "#/components/schemas/IngredientInput"
@@ -904,6 +984,10 @@
           "updatedAtUtc": {
             "format": "date-time",
             "type": "string"
+          },
+          "version": {
+            "format": "uuid",
+            "type": "string"
           }
         },
         "required": [
@@ -916,7 +1000,8 @@
           "steps",
           "imageUrl",
           "createdAtUtc",
-          "updatedAtUtc"
+          "updatedAtUtc",
+          "version"
         ],
         "type": "object"
       },
@@ -967,6 +1052,12 @@
         "properties": {
           "accept": {
             "type": "boolean"
+          },
+          "expectedVersion": {
+            "type": [
+              "null",
+              "string"
+            ]
           }
         },
         "required": [
@@ -1029,6 +1120,18 @@
         "required": [
           "displayName",
           "email"
+        ],
+        "type": "object"
+      },
+      "VersionResponse": {
+        "properties": {
+          "version": {
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "version"
         ],
         "type": "object"
       }
@@ -1692,11 +1795,20 @@
           "204": {
             "description": "No Content"
           },
+          "400": {
+            "description": "Malformed version or invalid command"
+          },
           "401": {
             "description": "Active account authentication required"
           },
           "403": {
             "description": "Insufficient account or cookbook permissions"
+          },
+          "409": {
+            "description": "concurrency_conflict: review current authorized state; no automatic overwrite"
+          },
+          "428": {
+            "description": "concurrency_precondition_required: reload and submit a version"
           },
           "503": {
             "description": "Administrator setup or required provider configuration is missing"
@@ -1991,11 +2103,23 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "description": "One quoted strong aggregate version (UUID). Weak tags, lists and wildcard overwrite are rejected. Required also for raw binary photo PUT.",
+            "in": "header",
+            "name": "If-Match",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
           }
         ],
         "responses": {
           "204": {
             "description": "No Content"
+          },
+          "400": {
+            "description": "Malformed version or invalid command"
           },
           "401": {
             "description": "Active account authentication required"
@@ -2005,6 +2129,12 @@
           },
           "404": {
             "description": "Not Found"
+          },
+          "412": {
+            "description": "concurrency_conflict: review current authorized state; no automatic overwrite"
+          },
+          "428": {
+            "description": "concurrency_precondition_required: reload and submit a version"
           },
           "503": {
             "description": "Administrator setup or required provider configuration is missing"
@@ -2143,6 +2273,12 @@
           "404": {
             "description": "Not Found"
           },
+          "409": {
+            "description": "concurrency_conflict: review current authorized state; no automatic overwrite"
+          },
+          "428": {
+            "description": "concurrency_precondition_required: reload and submit a version"
+          },
           "503": {
             "description": "Administrator setup or required provider configuration is missing"
           }
@@ -2186,11 +2322,30 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "description": "One quoted strong aggregate version (UUID). Weak tags, lists and wildcard overwrite are rejected. Required also for raw binary photo PUT.",
+            "in": "header",
+            "name": "If-Match",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
           }
         ],
         "responses": {
-          "204": {
-            "description": "No Content"
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ImageResponse"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "400": {
+            "description": "Malformed version or invalid command"
           },
           "401": {
             "description": "Active account authentication required"
@@ -2200,6 +2355,12 @@
           },
           "404": {
             "description": "Not Found"
+          },
+          "412": {
+            "description": "concurrency_conflict: review current authorized state; no automatic overwrite"
+          },
+          "428": {
+            "description": "concurrency_precondition_required: reload and submit a version"
           },
           "503": {
             "description": "Administrator setup or required provider configuration is missing"
@@ -2289,6 +2450,15 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "description": "One quoted strong aggregate version (UUID). Weak tags, lists and wildcard overwrite are rejected. Required also for raw binary photo PUT.",
+            "in": "header",
+            "name": "If-Match",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
           }
         ],
         "requestBody": {
@@ -2312,6 +2482,9 @@
             },
             "description": "OK"
           },
+          "400": {
+            "description": "Malformed version or invalid command"
+          },
           "401": {
             "description": "Active account authentication required"
           },
@@ -2320,6 +2493,9 @@
           },
           "404": {
             "description": "Not Found"
+          },
+          "412": {
+            "description": "concurrency_conflict: review current authorized state; no automatic overwrite"
           },
           "413": {
             "content": {
@@ -2340,6 +2516,9 @@
               }
             },
             "description": "Unsupported Media Type"
+          },
+          "428": {
+            "description": "concurrency_precondition_required: reload and submit a version"
           },
           "503": {
             "description": "Administrator setup or required provider configuration is missing"
@@ -2375,11 +2554,23 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "description": "One quoted strong aggregate version (UUID). Weak tags, lists and wildcard overwrite are rejected. Required also for raw binary photo PUT.",
+            "in": "header",
+            "name": "If-Match",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
           }
         ],
         "responses": {
           "204": {
             "description": "No Content"
+          },
+          "400": {
+            "description": "Malformed version or invalid command"
           },
           "401": {
             "description": "Active account authentication required"
@@ -2389,6 +2580,12 @@
           },
           "404": {
             "description": "Resource missing or outside accessible cookbooks"
+          },
+          "412": {
+            "description": "concurrency_conflict: review current authorized state; no automatic overwrite"
+          },
+          "428": {
+            "description": "concurrency_precondition_required: reload and submit a version"
           },
           "503": {
             "description": "Administrator setup or required provider configuration is missing"
@@ -2480,8 +2677,18 @@
           "required": true
         },
         "responses": {
-          "204": {
-            "description": "No Content"
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CookbookResponse"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "400": {
+            "description": "Malformed version or invalid command"
           },
           "401": {
             "description": "Active account authentication required"
@@ -2491,6 +2698,12 @@
           },
           "404": {
             "description": "Resource missing or outside accessible cookbooks"
+          },
+          "409": {
+            "description": "concurrency_conflict: review current authorized state; no automatic overwrite"
+          },
+          "428": {
+            "description": "concurrency_precondition_required: reload and submit a version"
           },
           "503": {
             "description": "Administrator setup or required provider configuration is missing"
@@ -2526,11 +2739,30 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "description": "One quoted strong aggregate version (UUID). Weak tags, lists and wildcard overwrite are rejected. Required also for raw binary photo PUT.",
+            "in": "header",
+            "name": "If-Match",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
           }
         ],
         "responses": {
-          "204": {
-            "description": "No Content"
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CookbookResponse"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "400": {
+            "description": "Malformed version or invalid command"
           },
           "401": {
             "description": "Active account authentication required"
@@ -2540,6 +2772,12 @@
           },
           "404": {
             "description": "Resource missing or outside accessible cookbooks"
+          },
+          "412": {
+            "description": "concurrency_conflict: review current authorized state; no automatic overwrite"
+          },
+          "428": {
+            "description": "concurrency_precondition_required: reload and submit a version"
           },
           "503": {
             "description": "Administrator setup or required provider configuration is missing"
@@ -2611,6 +2849,15 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "description": "One quoted strong aggregate version (UUID). Weak tags, lists and wildcard overwrite are rejected. Required also for raw binary photo PUT.",
+            "in": "header",
+            "name": "If-Match",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
           }
         ],
         "requestBody": {
@@ -2634,6 +2881,9 @@
             },
             "description": "OK"
           },
+          "400": {
+            "description": "Malformed version or invalid command"
+          },
           "401": {
             "description": "Active account authentication required"
           },
@@ -2642,6 +2892,12 @@
           },
           "404": {
             "description": "Resource missing or outside accessible cookbooks"
+          },
+          "412": {
+            "description": "concurrency_conflict: review current authorized state; no automatic overwrite"
+          },
+          "428": {
+            "description": "concurrency_precondition_required: reload and submit a version"
           },
           "503": {
             "description": "Administrator setup or required provider configuration is missing"
@@ -2686,11 +2942,30 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "description": "One quoted strong aggregate version (UUID). Weak tags, lists and wildcard overwrite are rejected. Required also for raw binary photo PUT.",
+            "in": "header",
+            "name": "If-Match",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
           }
         ],
         "responses": {
-          "204": {
-            "description": "No Content"
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VersionResponse"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "400": {
+            "description": "Malformed version or invalid command"
           },
           "401": {
             "description": "Active account authentication required"
@@ -2700,6 +2975,12 @@
           },
           "404": {
             "description": "Resource missing or outside accessible cookbooks"
+          },
+          "412": {
+            "description": "concurrency_conflict: review current authorized state; no automatic overwrite"
+          },
+          "428": {
+            "description": "concurrency_precondition_required: reload and submit a version"
           },
           "503": {
             "description": "Administrator setup or required provider configuration is missing"
@@ -2737,9 +3018,28 @@
             }
           }
         ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "oneOf": [
+                  {
+                    "type": "null"
+                  },
+                  {
+                    "$ref": "#/components/schemas/ExpectedVersionInput"
+                  }
+                ]
+              }
+            }
+          }
+        },
         "responses": {
           "204": {
             "description": "No Content"
+          },
+          "400": {
+            "description": "Malformed version or invalid command"
           },
           "401": {
             "description": "Active account authentication required"
@@ -2749,6 +3049,12 @@
           },
           "404": {
             "description": "Resource missing or outside accessible cookbooks"
+          },
+          "409": {
+            "description": "concurrency_conflict: review current authorized state; no automatic overwrite"
+          },
+          "428": {
+            "description": "concurrency_precondition_required: reload and submit a version"
           },
           "503": {
             "description": "Administrator setup or required provider configuration is missing"
@@ -2782,10 +3088,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "items": {
-                    "$ref": "#/components/schemas/MemberResponse"
-                  },
-                  "type": "array"
+                  "$ref": "#/components/schemas/CookbookMembersResponse"
                 }
               }
             },
@@ -2845,8 +3148,18 @@
           "required": true
         },
         "responses": {
-          "204": {
-            "description": "No Content"
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VersionResponse"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "400": {
+            "description": "Malformed version or invalid command"
           },
           "401": {
             "description": "Active account authentication required"
@@ -2856,6 +3169,12 @@
           },
           "404": {
             "description": "Resource missing or outside accessible cookbooks"
+          },
+          "409": {
+            "description": "concurrency_conflict: review current authorized state; no automatic overwrite"
+          },
+          "428": {
+            "description": "concurrency_precondition_required: reload and submit a version"
           },
           "503": {
             "description": "Administrator setup or required provider configuration is missing"
@@ -2900,11 +3219,33 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "description": "One quoted strong aggregate version (UUID). Weak tags, lists and wildcard overwrite are rejected. Required also for raw binary photo PUT.",
+            "in": "header",
+            "name": "If-Match",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
           }
         ],
         "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VersionResponse"
+                }
+              }
+            },
+            "description": "OK"
+          },
           "204": {
             "description": "No Content"
+          },
+          "400": {
+            "description": "Malformed version or invalid command"
           },
           "401": {
             "description": "Active account authentication required"
@@ -2914,6 +3255,12 @@
           },
           "404": {
             "description": "Resource missing or outside accessible cookbooks"
+          },
+          "412": {
+            "description": "concurrency_conflict: review current authorized state; no automatic overwrite"
+          },
+          "428": {
+            "description": "concurrency_precondition_required: reload and submit a version"
           },
           "503": {
             "description": "Administrator setup or required provider configuration is missing"
@@ -2969,8 +3316,18 @@
           "required": true
         },
         "responses": {
-          "204": {
-            "description": "No Content"
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VersionResponse"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "400": {
+            "description": "Malformed version or invalid command"
           },
           "401": {
             "description": "Active account authentication required"
@@ -2980,6 +3337,12 @@
           },
           "404": {
             "description": "Resource missing or outside accessible cookbooks"
+          },
+          "409": {
+            "description": "concurrency_conflict: review current authorized state; no automatic overwrite"
+          },
+          "428": {
+            "description": "concurrency_precondition_required: reload and submit a version"
           },
           "503": {
             "description": "Administrator setup or required provider configuration is missing"

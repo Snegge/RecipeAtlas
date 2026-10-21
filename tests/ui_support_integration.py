@@ -1,3 +1,5 @@
+from contextlib import closing
+from versioned_requests import with_current_version
 """Consent, profiles, covers and destructive-use-case regression tests. Only disposable SQLite."""
 from concurrent.futures import ThreadPoolExecutor
 import http.cookiejar
@@ -33,6 +35,7 @@ with tempfile.TemporaryDirectory(prefix='recipoke-ui-support-') as directory:
     def call(opener,method,path,expected,body=None,headers=None):
         global checks
         request_headers={'X-RecipeAtlas':'1',**(headers or {})}
+        body, request_headers = with_current_version(opener, base, method, path, body, request_headers)
         if isinstance(body,dict):body=json.dumps(body).encode();request_headers['Content-Type']='application/json'
         req=urllib.request.Request(base+path,data=body,method=method,headers=request_headers)
         try:response=opener.open(req,timeout=40)
@@ -84,7 +87,7 @@ with tempfile.TemporaryDirectory(prefix='recipoke-ui-support-') as directory:
         call(viewer,'GET',picture['avatarUrl'],200)
         call(viewer,'GET',prefix+'/recipes',404)
         call(stranger,'GET',cover['imageUrl'],404)
-        members=call(admin,'GET',prefix+'/members',200)
+        members=call(admin,'GET',prefix+'/members',200)['members']
         assert next(x for x in members if x['userId']==viewer_me['id'])['isPending']
         # Seven pending invites are served five at a time; responding reveals the next one.
         for number in range(6):call(admin,'POST','/api/cookbooks',201,{'name':'Queued '+str(number),'members':[{'username':'viewer','role':'Viewer'}]})
@@ -100,8 +103,8 @@ with tempfile.TemporaryDirectory(prefix='recipoke-ui-support-') as directory:
         call(viewer,'POST','/api/cookbook-invitations/'+declined['id'],204,{'accept':False})
         assert len(call(viewer,'GET','/api/cookbook-invitations',200))==5
         call(viewer,'GET','/api/cookbooks/'+declined['cookbookId'],404)
-        call(admin,'POST','/api/cookbooks/'+declined['cookbookId']+'/members',204,{'username':'viewer','role':'Viewer'})
-        call(admin,'DELETE','/api/cookbooks/'+declined['cookbookId']+'/invitations/'+viewer_me['id'],204)
+        call(admin,'POST','/api/cookbooks/'+declined['cookbookId']+'/members',200,{'username':'viewer','role':'Viewer'})
+        call(admin,'DELETE','/api/cookbooks/'+declined['cookbookId']+'/invitations/'+viewer_me['id'],200)
         # Failed initial invitations never leave a partially created cookbook.
         before=len(call(admin,'GET','/api/cookbooks',200))
         call(admin,'POST','/api/cookbooks',404,{'name':'Must roll back','members':[{'username':'no-such-user','role':'Viewer'}]})
@@ -109,7 +112,7 @@ with tempfile.TemporaryDirectory(prefix='recipoke-ui-support-') as directory:
         call(admin,'POST','/api/cookbooks',400,{'name':'Malformed staged','members':[None]})
         assert len(call(admin,'GET','/api/cookbooks',200))==before
         call(admin,'POST',prefix+'/members',400,{'username':'stranger','role':'Owner'})
-        call(admin,'POST',prefix+'/members',204,{'username':'editor','role':'Editor'});accept(editor,book_id)
+        call(admin,'POST',prefix+'/members',200,{'username':'editor','role':'Editor'});accept(editor,book_id)
         payload=json.loads((ROOT/'sample-recipe.json').read_text())
         recipe=call(editor,'POST',prefix+'/recipes',201,payload)
         recipe_path=prefix+'/recipes/'+recipe['id'];call(editor,'PUT',recipe_path+'/image',200,PNG)
@@ -118,15 +121,15 @@ with tempfile.TemporaryDirectory(prefix='recipoke-ui-support-') as directory:
         uploaded=call(viewer,'PUT','/api/account/avatar',200,PNG)
         call(editor,'GET',uploaded['avatarUrl'],200);call(stranger,'GET',uploaded['avatarUrl'],404)
         # Force failure after the recipes delete. The whole deletion must roll back.
-        with sqlite3.connect(Path(directory)/'recipes.db') as db:
+        with closing(sqlite3.connect(Path(directory)/'recipes.db')) as db, db:
             db.execute("CREATE TRIGGER RejectMembershipDeletion BEFORE DELETE ON Memberships BEGIN SELECT RAISE(ABORT,'Synthetic delete failure'); END")
         call(admin,'DELETE',prefix,500)
         call(admin,'GET',recipe_path,200);assert call(admin,'GET',recipe_path+'/image',200)==PNG
         assert call(admin,'GET',prefix,200)['recipeCount']==1
-        with sqlite3.connect(Path(directory)/'recipes.db') as db:db.execute('DROP TRIGGER RejectMembershipDeletion')
+        with closing(sqlite3.connect(Path(directory)/'recipes.db')) as db, db:db.execute('DROP TRIGGER RejectMembershipDeletion')
         call(admin,'DELETE',prefix,204)
         call(admin,'GET',prefix,404);call(viewer,'GET',recipe_path,404);call(viewer,'GET',cover['imageUrl'],404)
-        with sqlite3.connect(Path(directory)/'recipes.db') as db:
+        with closing(sqlite3.connect(Path(directory)/'recipes.db')) as db, db:
             assert db.execute('SELECT COUNT(*) FROM Recipes').fetchone()[0]==0
             assert db.execute('SELECT COUNT(*) FROM Images').fetchone()[0]==0
             assert db.execute('SELECT COUNT(*) FROM CookbookImages').fetchone()[0]==0

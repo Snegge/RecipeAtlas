@@ -20,6 +20,7 @@ public sealed class RecipeDb(DbContextOptions<RecipeDb> options) : IdentityUserC
     protected override void OnModelCreating(ModelBuilder model)
     {
         base.OnModelCreating(model);
+        model.Entity<Cookbook>().Property(x => x.Version).IsConcurrencyToken();
         model.Entity<AppUser>().HasIndex(x => x.NormalizedEmail).IsUnique().HasFilter("\"NormalizedEmail\" IS NOT NULL");
         model.Entity<AppUser>().HasOne(x => x.ProfileImage).WithOne().HasForeignKey<AccountProfileImage>(x => x.UserId).OnDelete(DeleteBehavior.Cascade);
         model.Entity<AccountProfileImage>().HasKey(x => x.UserId);

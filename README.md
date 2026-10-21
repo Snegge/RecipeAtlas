@@ -4,7 +4,7 @@ Invitation-only recipe application: ASP.NET Core 10, Identity cookies, EF Core 1
 
 The backend remains a feature-organised monolith with an independent domain assembly. Application operations use EF Core directly; endpoints handle HTTP. See the German [architecture guide](docs/architecture/README.md), [account/cookbook decisions](docs/architecture/adr/009-identity-sessions.md) and [upgrade/runbook](docs/accounts-and-cookbooks.md).
 
-Both repositories must use `feature/accounts-and-cookbooks` together. This feature changes authentication and recipe routes and adds a migration; it is not a rename-only upgrade.
+Both repositories must use `feature/shared-editing` together. This step adds aggregate versions and required mutation preconditions. Deploy both applications together and reload existing browser tabs. Authentication, routes and data paths are preserved; see the [concurrency upgrade runbook](docs/shared-editing.md).
 
 ## Local setup
 
@@ -96,6 +96,14 @@ python3 tests/check_shared_contracts.py ../RecipeAtlasFrontend
 python3 scripts/sync_frontend_contracts.py ../RecipeAtlasFrontend --check
 ```
 
+On Windows/PowerShell, use `python` if that is your installed Python command. To run the account, UI-support and concurrency HTTP suites with additional SQLite connection-lifetime checks:
+
+```powershell
+python tests/test_sqlite_cleanup.py
+```
+
+This executes the same 159 + 78 + 111 HTTP checks and verifies that their Python SQLite connections are explicitly closed. A connection's own `with` block commits/rolls back; it does not close the connection. The scripts preserve both behaviors using `contextlib.closing` around the transaction scope, preventing Windows `WinError 32` during disposable database cleanup. CI runs these checks on Linux and Windows; they never open your application data directory.
+
 `dotnet test` does not run the console suite. Tests use disposable SQLite and synthetic credentials; no migration runs against user data. With `--no-connect`, EF cannot report applied/pending database state; this is expected. The model check separately compares code and snapshot.
 
 Use the actual frontend root containing `package.json` in cross-repository commands. `../RecipeAtlasFrontend` only works for sibling checkouts. For intentional contract changes run `python3 scripts/export_openapi.py` then `python3 scripts/sync_frontend_contracts.py /absolute/frontend/root`, inspect both diffs and rerun checks. Domain unit definitions/backend fixtures remain authoritative.
@@ -129,7 +137,7 @@ Bootstrap uses a terminal prompt. Recover an administrator with `docker compose 
 
 See [quantity strings/conversions](docs/quantity-strings.md) and [description-only social/text imports](docs/social-description-import.md). Website imports work without AI configuration. Social/text extraction uses the existing optional Gemini configuration and pinned yt-dlp setup. No new import capability is added by account sharing. External process networking still needs deployment-level egress isolation; HttpClient destination checks do not sandbox yt-dlp.
 
-Deferred: account deletion/promotion UI, ownership transfer, password-reset delivery, shopping lists, cooking sessions, offline sync and general edit concurrency. Existing recipe edits remain last-write-wins.
+Deferred: account deletion/promotion UI, ownership transfer, password-reset delivery, shopping lists, cooking sessions, offline sync. Safe recipe/cookbook concurrency now uses explicit versions and conflict review; see [shared editing](docs/shared-editing.md).
 
 ## Mobile UI, profiles and membership consent
 
@@ -144,3 +152,5 @@ See [ADR 013](docs/architecture/adr/013-cookbook-consent-and-profiles.md). Optio
 ```sh
 python3 tests/ui_upgrade.py /path/to/pre-ui-publish/Recipoke.Api.dll
 ```
+
+Concurrent editing and the coordinated version-contract upgrade are documented in [the German runbook](docs/shared-editing.md) and [ADR 014](docs/architecture/adr/014-optimistic-concurrency.md). Old browser tabs must reload after deployment.

@@ -1,3 +1,4 @@
+from versioned_requests import with_current_version
 """Run after dotnet build. Uses an isolated database, random password and local port."""
 import base64
 import copy
@@ -34,6 +35,8 @@ checks = 0
 def request(method, path, expected, data=None, csrf=True, authenticated=True, content_type=None):
     global checks
     headers = {"X-RecipeAtlas": "1"} if csrf else {}
+    opener = client if authenticated else urllib.request.build_opener()
+    data, headers = with_current_version(opener, base, method, path, data, headers)
     if isinstance(data, (dict, list)):
         data = json.dumps(data).encode()
         headers["Content-Type"] = "application/json"
@@ -135,7 +138,7 @@ with tempfile.TemporaryDirectory(prefix="recipoke-test-") as temporary:
         invalid["ingredients"][0]["unit"] = "lb"
         request("PUT", path, 400, invalid)
         request("PUT", path, 200, recipe)
-        assert set(created) == {"id", "title", "description", "sourceUrl", "servings", "ingredients", "steps", "imageUrl", "createdAtUtc", "updatedAtUtc"}
+        assert set(created) == {"id", "title", "description", "sourceUrl", "servings", "ingredients", "steps", "imageUrl", "createdAtUtc", "updatedAtUtc", "version"}
         listing = request("GET", recipes_path + '?search=PASTA&pageSize=5', 200)
         assert listing["total"] == 1 and "ingredients" not in listing["items"][0]
         assert request("GET", recipes_path + '?search=olive', 200)["total"] == 1
@@ -167,7 +170,7 @@ with tempfile.TemporaryDirectory(prefix="recipoke-test-") as temporary:
         assert persisted["title"] == "Updated pasta"
         assert persisted["ingredients"][0]["quantity"] == "3-4"
         assert request("GET", path + "/image", 200) == png
-        request("DELETE", path + "/image", 204)
+        request("DELETE", path + "/image", 200)
         request("GET", path + "/image", 404)
         assert request("GET", path, 200)["imageUrl"] is None
         request("PUT", path + "/image", 200, png)

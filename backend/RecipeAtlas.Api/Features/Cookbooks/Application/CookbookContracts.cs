@@ -2,19 +2,23 @@ using System.Text.Json.Serialization;
 
 namespace Recipoke.Api.Features.Cookbooks.Application;
 
-public sealed record CookbookResponse(Guid Id, string Name, string Role, string? Description = null, string? ImageUrl = null, int RecipeCount = 0);
+public sealed record CookbookResponse(Guid Id, string Name, string Role, Guid Version, string? Description = null, string? ImageUrl = null, int RecipeCount = 0);
 [JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Disallow)]
-public sealed record CookbookNameInput(string? Name, string? Description = null);
+public sealed record CookbookNameInput(string? Name, string? Description = null, string? ExpectedVersion = null);
 [JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Disallow)]
 public sealed record CreateCookbookInput(string? Name, string? Description = null, IReadOnlyList<AddMemberInput>? Members = null);
 [JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Disallow)]
-public sealed record AddMemberInput(string? Username, string? Role);
+public sealed record AddMemberInput(string? Username, string? Role, string? ExpectedVersion = null);
 [JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Disallow)]
-public sealed record MemberRoleInput(string? Role);
+public sealed record MemberRoleInput(string? Role, string? ExpectedVersion = null);
 public sealed record MemberResponse(Guid UserId, string Username, string DisplayName, string Role, bool IsActive, string? AvatarUrl = null, bool IsPending = false);
-public sealed record CookbookInvitationResponse(Guid Id, Guid CookbookId, string CookbookName, string Role, string OwnerDisplayName, string? OwnerAvatarUrl, string? ImageUrl);
+public sealed record CookbookInvitationResponse(Guid Id, Guid CookbookId, string CookbookName, string Role, string OwnerDisplayName, string? OwnerAvatarUrl, string? ImageUrl, Guid CookbookVersion);
 [JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Disallow)]
-public sealed record RespondToCookbookInvitationInput([property: JsonRequired] bool Accept);
+public sealed record RespondToCookbookInvitationInput([property: JsonRequired] bool Accept, string? ExpectedVersion = null);
+public sealed record CookbookMembersResponse(CookbookResponse Cookbook, IReadOnlyList<MemberResponse> Members);
+public sealed record VersionResponse(Guid Version);
+[JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Disallow)]
+public sealed record ExpectedVersionInput(string? ExpectedVersion);
 public static class CookbookValidation
 {
     public static string Name(string? name)

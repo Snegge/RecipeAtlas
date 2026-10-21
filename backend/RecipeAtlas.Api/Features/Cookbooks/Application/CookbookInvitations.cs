@@ -25,13 +25,17 @@ public sealed class CookbookInvitations(RecipeDb db, AccountAccess accounts, Coo
         db.CookbookInvitations.Add(new() { CookbookId = book.Id, UserId = user.Id, Role = role, CreatedAtUtc = clock.GetUtcNow() });
     }
 
-    public async Task InviteAsync(Guid id, AddMemberInput input, CancellationToken ct)
+    public async Task<VersionResponse> InviteAsync(Guid id, AddMemberInput input, CancellationToken ct)
     {
         await using var tx = await db.Database.BeginTransactionAsync(IsolationLevel.Serializable, ct);
         await access.RequireAsync(id, CookbookPermission.Manage, ct);
-        await StageAsync(await db.Cookbooks.SingleAsync(x => x.Id == id, ct), input, ct);
-        await db.SaveChangesAsync(ct);
+        var book = await db.Cookbooks.SingleAsync(x => x.Id == id, ct);
+        var expected = new VersionPrecondition(input.ExpectedVersion);
+        ConcurrencyWrites.Advance(db.Entry(book).Property(x => x.Version), expected);
+        await StageAsync(book, input, ct);
+        await ConcurrencyWrites.SaveAsync(db, expected, () => access.RequireAsync(id, CookbookPermission.Manage, ct), ct);
         await tx.CommitAsync(ct);
+        return new(book.Version);
     }
 
     public async Task<IReadOnlyList<CookbookInvitationResponse>> InboxAsync(CancellationToken ct)
@@ -44,16 +48,18 @@ public sealed class CookbookInvitations(RecipeDb db, AccountAccess accounts, Coo
                 db.Users.Where(u => u.Id == x.Cookbook.OwnerUserId).Select(u => u.DisplayName).Single(),
                 db.Users.Where(u => u.Id == x.Cookbook.OwnerUserId)
                     .Select(u => u.ProfileImage == null ? null : "/api/accounts/" + u.Id + "/avatar?v=" + u.ProfileImage.Version).Single(),
-                x.Cookbook.Image == null ? null : "/api/cookbooks/" + x.CookbookId + "/image?v=" + x.Cookbook.Image.Version))
+                x.Cookbook.Image == null ? null : "/api/cookbooks/" + x.CookbookId + "/image?v=" + x.Cookbook.Image.Version, x.Cookbook.Version))
             .ToListAsync(ct);
     }
 
-    public async Task RespondAsync(Guid id, bool accept, CancellationToken ct)
+    public async Task RespondAsync(Guid id, bool accept, VersionPrecondition expected, CancellationToken ct)
     {
         await using var tx = await db.Database.BeginTransactionAsync(IsolationLevel.Serializable, ct);
         var user = await accounts.RequireActiveAsync(ct);
         var invitation = await db.CookbookInvitations.SingleOrDefaultAsync(x => x.Id == id && x.UserId == user.Id, ct)
-            ?? throw new OperationFailure(404, "Cookbook invitation not found.");
+            ?? throw new OperationFailure(404, "Cookbook invitation not found.", "resource_unavailable");
+        var book = await db.Cookbooks.SingleAsync(x => x.Id == invitation.CookbookId, ct);
+        ConcurrencyWrites.Advance(db.Entry(book).Property(x => x.Version), expected);
         if (accept)
         {
             if (!await db.Memberships.AnyAsync(x => x.CookbookId == invitation.CookbookId && x.UserId == user.Id, ct))
@@ -61,17 +67,26 @@ public sealed class CookbookInvitations(RecipeDb db, AccountAccess accounts, Coo
         }
 
         db.CookbookInvitations.Remove(invitation);
-        await db.SaveChangesAsync(ct);
+        await ConcurrencyWrites.SaveAsync(db, expected, async () =>
+        {
+            await accounts.RequireActiveAsync(ct);
+            if (!await db.CookbookInvitations.AnyAsync(x => x.Id == id && x.UserId == user.Id, ct))
+                throw new OperationFailure(404, "Cookbook invitation is no longer available.", "resource_unavailable");
+        }, ct);
         await tx.CommitAsync(ct);
     }
 
-    public async Task CancelAsync(Guid cookbookId, Guid userId, CancellationToken ct)
+    public async Task<VersionResponse> CancelAsync(Guid cookbookId, Guid userId, VersionPrecondition expected, CancellationToken ct)
     {
         await using var tx = await db.Database.BeginTransactionAsync(IsolationLevel.Serializable, ct);
         await access.RequireAsync(cookbookId, CookbookPermission.Manage, ct);
-        var pending = await db.CookbookInvitations.Where(x => x.CookbookId == cookbookId && x.UserId == userId).ExecuteDeleteAsync(ct);
-        if (pending == 0)
-            throw new OperationFailure(404, "Cookbook invitation not found.");
+        var book = await db.Cookbooks.SingleAsync(x => x.Id == cookbookId, ct);
+        ConcurrencyWrites.Advance(db.Entry(book).Property(x => x.Version), expected);
+        var pending = await db.CookbookInvitations.SingleOrDefaultAsync(x => x.CookbookId == cookbookId && x.UserId == userId, ct)
+            ?? throw new OperationFailure(404, "Cookbook invitation not found.", "resource_unavailable");
+        db.CookbookInvitations.Remove(pending);
+        await ConcurrencyWrites.SaveAsync(db, expected, () => access.RequireAsync(cookbookId, CookbookPermission.Manage, ct), ct);
         await tx.CommitAsync(ct);
+        return new(book.Version);
     }
 }

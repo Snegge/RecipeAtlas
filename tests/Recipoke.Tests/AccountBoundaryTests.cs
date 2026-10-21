@@ -66,14 +66,15 @@ internal static class AccountBoundaryTests
     {
         var options = new DbContextOptionsBuilder<RecipeDb>().UseSqlite(connection).Options;
         var editorId = Guid.NewGuid(); var bookId = LegacySetup.CookbookId;
-        Guid recipeId;
+        Guid recipeId; string recipeVersion;
         RecipeInput input = new("Before", null, null, 2, [new("Eggs", "2", "piece", null)], ["Cook"]);
         await using (var db = new RecipeDb(options))
         {
             db.Users.Add(new AppUser { Id = editorId, UserName = "editor", NormalizedUserName = "EDITOR", DisplayName = "Editor", IsActive = true });
             db.Memberships.Add(new() { CookbookId = bookId, UserId = editorId, Role = CookbookRole.Editor }); await db.SaveChangesAsync();
             var access = new CookbookAccess(db, new AccountAccess(db, new TestCurrentUser(LegacySetup.UserId)));
-            recipeId = (await new CreateRecipe(db, access).ExecuteAsync(bookId, input, default)).Recipe!.Id;
+            var created = (await new CreateRecipe(db, access).ExecuteAsync(bookId, input, default)).Recipe!;
+            recipeId = created.Id; recipeVersion = created.Version.ToString();
         }
         var pause = new PauseAfterPermissionRead();
         var pausedOptions = new DbContextOptionsBuilder<RecipeDb>().UseSqlite(connection).AddInterceptors(pause).Options;
@@ -81,17 +82,19 @@ internal static class AccountBoundaryTests
         {
             await using var db = new RecipeDb(pausedOptions);
             var access = new CookbookAccess(db, new AccountAccess(db, new TestCurrentUser(editorId)));
-            return await new UpdateRecipe(db, access).ExecuteAsync(bookId, recipeId, input with { Title = "Committed before downgrade" }, default);
+            return await new UpdateRecipe(db, access).ExecuteAsync(bookId, recipeId, input with { Title = "Committed before downgrade", ExpectedVersion = recipeVersion }, default);
         });
         await pause.Ready.Task.WaitAsync(TimeSpan.FromSeconds(10));
+        var attempt = new ObserveTransactionAttempt();
+        var downgradeOptions = new DbContextOptionsBuilder<RecipeDb>().UseSqlite(connection).AddInterceptors(attempt).Options;
         var downgrade = Task.Run(async () =>
         {
-            await using var db = new RecipeDb(options);
+            await using var db = new RecipeDb(downgradeOptions);
             var accounts = new AccountAccess(db, new TestCurrentUser(LegacySetup.UserId));
             var access = new CookbookAccess(db, accounts);
-            await new CookbookOperations(db, accounts, access, new CookbookInvitations(db, accounts, access, new UpperInvariantLookupNormalizer(), TimeProvider.System)).ChangeMemberAsync(bookId, editorId, "Viewer", false, default);
+            await new CookbookOperations(db, accounts, access, new CookbookInvitations(db, accounts, access, new UpperInvariantLookupNormalizer(), TimeProvider.System)).ChangeMemberAsync(bookId, editorId, "Viewer", false, new((await db.Cookbooks.AsNoTracking().SingleAsync(x => x.Id == bookId)).Version.ToString()), default);
         });
-        try { await Task.Delay(100); check(!downgrade.IsCompleted, "Permission change cannot overtake an authorized write transaction"); }
+        try { await attempt.Started.Task.WaitAsync(TimeSpan.FromSeconds(10)); check(!downgrade.IsCompleted, "Permission change cannot overtake an authorized write transaction"); }
         finally { pause.Release.TrySetResult(); }
         await writing; await downgrade;
         await using (var db = new RecipeDb(options))
@@ -101,6 +104,14 @@ internal static class AccountBoundaryTests
             catch (Recipoke.Api.Common.Application.OperationFailure e) { check(e.StatusCode == 403, "Write after committed downgrade is denied"); }
             check((await db.Recipes.SingleAsync()).Title == "Committed before downgrade", "Transaction ordering preserves the authorized earlier write");
         }
+    }
+    private sealed class ObserveTransactionAttempt : DbTransactionInterceptor
+    {
+        public readonly TaskCompletionSource Started = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        public override ValueTask<InterceptionResult<System.Data.Common.DbTransaction>> TransactionStartingAsync(
+            DbConnection connection, TransactionStartingEventData eventData,
+            InterceptionResult<System.Data.Common.DbTransaction> result, CancellationToken cancellationToken = default)
+        { Started.TrySetResult(); return ValueTask.FromResult(result); }
     }
     private sealed class FailSecondWrite : DbCommandInterceptor
     {
