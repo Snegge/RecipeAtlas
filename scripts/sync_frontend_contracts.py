@@ -45,7 +45,7 @@ for source, target, value in values:
             target.write_text(json.dumps(value, indent=2, ensure_ascii=False) + '\n', encoding='utf-8')
     if source.name != 'recipoke.openapi.json':
         canonical = json.dumps(value, sort_keys=True, separators=(',', ':'), ensure_ascii=False)
-        fingerprints[str(target.relative_to(frontend))] = hashlib.sha256(canonical.encode()).hexdigest()
+        fingerprints[target.relative_to(frontend).as_posix()] = hashlib.sha256(canonical.encode()).hexdigest()
 manifest = frontend / 'contracts/quantity-fingerprints.json'
 if args.check:
     if read_json(manifest) != fingerprints:

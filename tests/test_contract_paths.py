@@ -43,6 +43,14 @@ class ContractPathTests(unittest.TestCase):
             self.assertEqual(result.returncode, 0, result.stderr)
         self.assertEqual(self.snapshot(), before)
 
+    def test_fingerprint_keys_use_portable_forward_slashes(self):
+        self.populate()
+        manifest = json.loads((self.frontend / 'contracts/quantity-fingerprints.json').read_text(encoding='utf-8'))
+        self.assertEqual(set(manifest), {
+            'src/app/core/utils/measurement-units.json',
+            'src/app/core/utils/fixtures/quantity-cases.json',
+        })
+
     def test_wrong_checkout_reports_resolved_directory_without_traceback(self):
         wrong = self.frontend.parent / 'missing checkout'
         for script, flags in self.commands():
