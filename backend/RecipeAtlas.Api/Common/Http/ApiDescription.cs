@@ -12,7 +12,7 @@ public static class ApiDescription
             options.AddDocumentTransformer((document, context, ct) =>
             {
                 document.Info.Title = "Recipoke API";
-                document.Info.Description = "Invitation-only accounts and cookbook-scoped recipes. Quantities are strings. Development-only description.";
+                document.Info.Description = "Invitation-only accounts, cookbook-scoped recipes and independently shared shopping lists. Recipe quantities are strings. Development-only description.";
                 document.Components ??= new();
                 document.Components.SecuritySchemes ??= new Dictionary<string, IOpenApiSecurityScheme>();
                 document.Components.SecuritySchemes["sessionCookie"] = new OpenApiSecurityScheme
@@ -32,7 +32,7 @@ public static class ApiDescription
                     operation.Security = [new OpenApiSecurityRequirement { [new OpenApiSecuritySchemeReference("sessionCookie", context.Document)] = [] }];
                     operation.Responses ??= new();
                     operation.Responses.TryAdd("401", new OpenApiResponse { Description = "Active account authentication required" });
-                    operation.Responses.TryAdd("403", new OpenApiResponse { Description = "Insufficient account or cookbook permissions" });
+                    operation.Responses.TryAdd("403", new OpenApiResponse { Description = "Insufficient account or resource permissions" });
                 }
                 if (path.StartsWith("api/") && method is not ("GET" or "HEAD" or "OPTIONS"))
                 {
@@ -74,6 +74,44 @@ public static class ApiDescription
                             Description = "One quoted strong aggregate version (UUID). Weak tags, lists and wildcard overwrite are rejected. Required also for raw binary photo PUT.",
                             Schema = new OpenApiSchema { Type = JsonSchemaType.String }
                         });
+                    }
+                }
+                if (path.StartsWith("api/shopping-lists"))
+                {
+                    operation.Responses ??= new();
+                    operation.Responses.TryAdd("404", new OpenApiResponse { Description = "Resource missing or outside current shopping-list membership" });
+                    var reservation = path.EndsWith("/reservation");
+                    var shoppingVersioned = !reservation && (method is "PUT" or "DELETE" ||
+                        method == "POST" && (path.EndsWith("/invitations") || path.EndsWith("/respond") || path.EndsWith("/leave") || path.EndsWith("/transfer")));
+                    if (shoppingVersioned || reservation && method == "POST")
+                    {
+                        operation.Responses.TryAdd("428", new OpenApiResponse { Description = "concurrency_precondition_required: supply the reviewed version" });
+                        operation.Responses.TryAdd("400", new OpenApiResponse { Description = "Malformed version or invalid command" });
+                        operation.Responses.TryAdd(method == "DELETE" ? "412" : "409", new OpenApiResponse { Description = "concurrency_conflict: retain local work and review the current state" });
+                        if (method == "DELETE")
+                        {
+                            operation.Parameters ??= [];
+                            operation.Parameters.Add(new OpenApiParameter
+                            {
+                                Name = "If-Match", In = ParameterLocation.Header, Required = true,
+                                Description = "One quoted strong version UUID; wildcards, weak tags and lists are rejected.",
+                                Schema = new OpenApiSchema { Type = JsonSchemaType.String }
+                            });
+                        }
+                    }
+                    if (method is not ("GET" or "HEAD" or "OPTIONS"))
+                    {
+                        operation.Responses.TryAdd("409", new OpenApiResponse { Description = "shopping_item_reserved, shopping_reservation_lost, shopping_undo_expired, operation_id_reused, or a stale body version; inspect code" });
+                        if (method == "DELETE" && !reservation)
+                        {
+                            operation.Parameters ??= [];
+                            operation.Parameters.Add(new OpenApiParameter
+                            {
+                                Name = "X-Operation-Id", In = ParameterLocation.Header, Required = true,
+                                Description = "UUID for this logical action. Retry the identical payload with the same ID.",
+                                Schema = new OpenApiSchema { Type = JsonSchemaType.String }
+                            });
+                        }
                     }
                 }
                 // Description only: Accepts metadata would change raw-image request validation.

@@ -86,10 +86,11 @@ with tempfile.TemporaryDirectory(prefix='recipoke-concurrency-upgrade-') as dire
     with closing(sqlite3.connect(db_path)) as db, db:
         for table,names in columns.items():assert db.execute('SELECT '+','.join('"'+c+'"' for c in names)+' FROM "'+table+'" ORDER BY 1').fetchall()==original[table],table+' changed'
         upgraded=db.execute('SELECT * FROM __EFMigrationsHistory ORDER BY MigrationId').fetchall()
-        assert upgraded[:-1]==history and upgraded[-1][0].endswith('_OptimisticAggregateVersions')
+        assert upgraded[:len(history)] == history, 'Historical migration records changed'
+        assert [row[0].split('_', 1)[1] for row in upgraded[len(history):]] == ['OptimisticAggregateVersions', 'SharedShoppingLists']
         for table in ['Recipes','Cookbooks']:
             versions=[row[0] for row in db.execute('SELECT Version FROM '+table)]
             assert versions and all(uuid.UUID(v).int for v in versions) and len(set(versions))==len(versions)
         assert not db.execute('PRAGMA foreign_key_check').fetchall()
     assert keys=={p.name:hashlib.sha256(p.read_bytes()).hexdigest() for p in (Path(directory)/'keys').iterdir()}
-    print('Concurrency upgrade passed: existing Identity sessions, users, memberships, every previous column, recipes, quantity strings, image bytes and key ring preserved; one additive migration.')
+    print('Concurrency and shopping upgrade passed: existing Identity sessions, users, memberships, every previous column, recipes, quantity strings, image bytes and key ring preserved; two additive migrations.')

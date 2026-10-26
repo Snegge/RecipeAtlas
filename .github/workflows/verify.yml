@@ -18,6 +18,7 @@ jobs:
       # Console runner: dotnet test would not execute this suite.
       - run: dotnet run --no-build --project tests/Recipoke.Tests
       - run: python3 tests/integration.py
+      - run: python3 tests/shopping_integration.py
       - name: Test accounts, UI support and concurrency with SQLite disposal checks
         run: python3 tests/test_sqlite_cleanup.py
       - run: python3 scripts/publish_pre_concurrency.py /tmp/recipoke-before-concurrency
@@ -41,3 +42,4 @@ jobs:
       - run: dotnet build --no-restore
       - name: Test HTTP behavior and temporary SQLite cleanup on Windows
         run: python tests/test_sqlite_cleanup.py
+      - run: python tests/shopping_integration.py

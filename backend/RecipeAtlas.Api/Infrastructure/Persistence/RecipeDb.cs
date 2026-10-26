@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Recipoke.Domain.Cookbooks;
+using Recipoke.Domain.Shopping;
 using Recipoke.Api.Infrastructure.Persistence.Configurations;
 
 namespace Recipoke.Api.Infrastructure.Persistence;
@@ -17,9 +18,18 @@ public sealed class RecipeDb(DbContextOptions<RecipeDb> options) : IdentityUserC
     public DbSet<AccountProfileImage> ProfileImages => Set<AccountProfileImage>();
     public DbSet<AccountInvitation> Invitations => Set<AccountInvitation>();
     public DbSet<AccountSetup> AccountSetups => Set<AccountSetup>();
+    public DbSet<ShoppingList> ShoppingLists => Set<ShoppingList>();
+    public DbSet<ShoppingMembership> ShoppingMemberships => Set<ShoppingMembership>();
+    public DbSet<ShoppingInvitation> ShoppingInvitations => Set<ShoppingInvitation>();
+    public DbSet<ShoppingItem> ShoppingItems => Set<ShoppingItem>();
+    public DbSet<ShoppingReservation> ShoppingReservations => Set<ShoppingReservation>();
+    public DbSet<ShoppingReservationToken> ShoppingReservationTokens => Set<ShoppingReservationToken>();
+    public DbSet<ShoppingReceipt> ShoppingReceipts => Set<ShoppingReceipt>();
+    public DbSet<ShoppingListTombstone> ShoppingListTombstones => Set<ShoppingListTombstone>();
     protected override void OnModelCreating(ModelBuilder model)
     {
         base.OnModelCreating(model);
+        ShoppingConfiguration.Configure(model);
         model.Entity<Cookbook>().Property(x => x.Version).IsConcurrencyToken();
         model.Entity<AppUser>().HasIndex(x => x.NormalizedEmail).IsUnique().HasFilter("\"NormalizedEmail\" IS NOT NULL");
         model.Entity<AppUser>().HasOne(x => x.ProfileImage).WithOne().HasForeignKey<AccountProfileImage>(x => x.UserId).OnDelete(DeleteBehavior.Cascade);

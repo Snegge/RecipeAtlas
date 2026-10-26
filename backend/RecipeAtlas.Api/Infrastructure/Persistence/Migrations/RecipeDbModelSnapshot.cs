@@ -464,6 +464,192 @@ namespace Recipoke.Api.Infrastructure.Persistence.Migrations
                     b.ToTable("RecipeStep");
                 });
 
+            modelBuilder.Entity("Recipoke.Domain.Shopping.ShoppingInvitation", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("ListId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId");
+
+                    b.HasIndex("ListId", "UserId")
+                        .IsUnique();
+
+                    b.ToTable("ShoppingInvitations");
+                });
+
+            modelBuilder.Entity("Recipoke.Domain.Shopping.ShoppingItem", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("TEXT");
+
+                    b.Property<bool>("Deleted")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<Guid?>("DeletedByUserId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid?>("DeletionOperationId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("ListId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<long>("Position")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<bool>("Purchased")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Text")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("TEXT");
+
+                    b.Property<long?>("UndoUntilUtc")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<Guid>("Version")
+                        .IsConcurrencyToken()
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ListId", "Position")
+                        .IsUnique();
+
+                    b.ToTable("ShoppingItems");
+                });
+
+            modelBuilder.Entity("Recipoke.Domain.Shopping.ShoppingList", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("OwnerUserId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("Version")
+                        .IsConcurrencyToken()
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("OwnerUserId");
+
+                    b.ToTable("ShoppingLists");
+                });
+
+            modelBuilder.Entity("Recipoke.Domain.Shopping.ShoppingListTombstone", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("ShoppingListTombstones");
+                });
+
+            modelBuilder.Entity("Recipoke.Domain.Shopping.ShoppingMembership", b =>
+                {
+                    b.Property<Guid>("ListId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("ListId", "UserId");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("ShoppingMemberships");
+                });
+
+            modelBuilder.Entity("Recipoke.Domain.Shopping.ShoppingReceipt", b =>
+                {
+                    b.Property<Guid>("ListId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("ActorUserId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("OperationId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Operation")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("PayloadHash")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("ResultJson")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("ListId", "ActorUserId", "OperationId");
+
+                    b.ToTable("ShoppingReceipts");
+                });
+
+            modelBuilder.Entity("Recipoke.Domain.Shopping.ShoppingReservation", b =>
+                {
+                    b.Property<Guid>("ItemId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<long>("ExpiresAtUtc")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<Guid>("ListId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("Token")
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("ItemId");
+
+                    b.HasIndex("ListId");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("ShoppingReservations");
+                });
+
+            modelBuilder.Entity("Recipoke.Domain.Shopping.ShoppingReservationToken", b =>
+                {
+                    b.Property<Guid>("ItemId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("Token")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("ItemId", "Token");
+
+                    b.ToTable("ShoppingReservationTokens");
+                });
+
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserClaim<System.Guid>", b =>
                 {
                     b.HasOne("Recipoke.Api.Infrastructure.Persistence.AppUser", null)
@@ -596,6 +782,93 @@ namespace Recipoke.Api.Infrastructure.Persistence.Migrations
                     b.HasOne("Recipoke.Domain.Recipes.Recipe", null)
                         .WithMany("Steps")
                         .HasForeignKey("RecipeId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("Recipoke.Domain.Shopping.ShoppingInvitation", b =>
+                {
+                    b.HasOne("Recipoke.Domain.Shopping.ShoppingList", null)
+                        .WithMany()
+                        .HasForeignKey("ListId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Recipoke.Api.Infrastructure.Persistence.AppUser", null)
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("Recipoke.Domain.Shopping.ShoppingItem", b =>
+                {
+                    b.HasOne("Recipoke.Domain.Shopping.ShoppingList", null)
+                        .WithMany()
+                        .HasForeignKey("ListId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("Recipoke.Domain.Shopping.ShoppingList", b =>
+                {
+                    b.HasOne("Recipoke.Api.Infrastructure.Persistence.AppUser", null)
+                        .WithMany()
+                        .HasForeignKey("OwnerUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("Recipoke.Domain.Shopping.ShoppingMembership", b =>
+                {
+                    b.HasOne("Recipoke.Domain.Shopping.ShoppingList", null)
+                        .WithMany()
+                        .HasForeignKey("ListId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Recipoke.Api.Infrastructure.Persistence.AppUser", null)
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("Recipoke.Domain.Shopping.ShoppingReceipt", b =>
+                {
+                    b.HasOne("Recipoke.Domain.Shopping.ShoppingList", null)
+                        .WithMany()
+                        .HasForeignKey("ListId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("Recipoke.Domain.Shopping.ShoppingReservation", b =>
+                {
+                    b.HasOne("Recipoke.Domain.Shopping.ShoppingItem", null)
+                        .WithOne()
+                        .HasForeignKey("Recipoke.Domain.Shopping.ShoppingReservation", "ItemId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Recipoke.Domain.Shopping.ShoppingList", null)
+                        .WithMany()
+                        .HasForeignKey("ListId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Recipoke.Api.Infrastructure.Persistence.AppUser", null)
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("Recipoke.Domain.Shopping.ShoppingReservationToken", b =>
+                {
+                    b.HasOne("Recipoke.Domain.Shopping.ShoppingItem", null)
+                        .WithMany()
+                        .HasForeignKey("ItemId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
                 });
