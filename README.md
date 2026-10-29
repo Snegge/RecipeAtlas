@@ -1,10 +1,10 @@
 # Recipoke backend
 
-Invitation-only recipe application: ASP.NET Core 10, Identity cookies, EF Core 10 and one SQLite database. Recipes and images belong to cookbooks with Owner, Editor and Viewer access. Global administrators manage accounts and invitations; that capability grants no automatic access to private recipes.
+Invitation-only recipe application: ASP.NET Core 10, Identity cookies, EF Core 10, SQLite for local development and PostgreSQL for cloud deployment. Recipes and images belong to cookbooks with Owner, Editor and Viewer access. Global administrators manage accounts and invitations; that capability grants no automatic access to private recipes.
 
 The backend remains a feature-organised monolith with an independent domain assembly. Application operations use EF Core directly; endpoints handle HTTP. See the German [architecture guide](docs/architecture/README.md), [account/cookbook decisions](docs/architecture/adr/009-identity-sessions.md) and [upgrade/runbook](docs/accounts-and-cookbooks.md).
 
-Both repositories must use `feature/shared-editing` together. This step adds aggregate versions and required mutation preconditions. Deploy both applications together and reload existing browser tabs. Authentication, routes and data paths are preserved; see the [concurrency upgrade runbook](docs/shared-editing.md).
+For the Render prototype, both repositories use `feature/cloud-deployment`; see the [cloud operator guide](docs/cloud-deployment.md). The existing shared-editing contract retains aggregate versions and required mutation preconditions. Deploy both applications together and reload existing browser tabs. Authentication, routes and data paths are preserved; see the [concurrency upgrade runbook](docs/shared-editing.md).
 
 ## Local setup
 
@@ -145,7 +145,7 @@ Deferred: account deletion/promotion UI, cookbook ownership transfer, password-r
 
 The latest feature update adds cookbook descriptions/covers, account display-name/email/avatar editing, and a private cookbook-invitation inbox. New members must accept before gaining access; at most five pending invitations are displayed and the next appears after a response. Existing accepted memberships remain unchanged. Owners can permanently delete a cookbook and all its recipes/images through a separate confirmation dialog.
 
-Start the matching backend/frontend branches together after backing up the data directory. Normal startup applies `20261018100818_CookbookInvitationsAndProfiles`. **An already completed administrator setup does not need to run again, and existing Identity sessions remain usable.** The earlier single-owner upgrade instructions apply only if you are upgrading from that older version.
+Start the matching backend/frontend branches together after backing up the data directory. Local SQLite startup applies `20261018100818_CookbookInvitationsAndProfiles`; PostgreSQL requires the explicit migration command in the cloud guide. **An already completed administrator setup does not need to run again, and existing Identity sessions remain usable.** The earlier single-owner upgrade instructions apply only if you are upgrading from that older version.
 
 New API additions: `PUT /api/account/profile`, `PUT/DELETE /api/account/avatar`, protected `GET /api/accounts/{id}/avatar`, `GET /api/cookbook-invitations`, `POST /api/cookbook-invitations/{id}`, `PUT/GET/DELETE /api/cookbooks/{id}/image`, `DELETE /api/cookbooks/{id}`, and owner cancellation at `DELETE /api/cookbooks/{id}/invitations/{userId}`. Cookbook creation accepts description and initial `members` (username/role); `POST .../members` now invites rather than adding immediately. Profile email is not a new login identifier and no email delivery/verification is enabled.
 
@@ -156,6 +156,9 @@ python3 tests/ui_upgrade.py /path/to/pre-ui-publish/Recipoke.Api.dll
 ```
 
 Concurrent editing and the coordinated version-contract upgrade are documented in [the German runbook](docs/shared-editing.md) and [ADR 014](docs/architecture/adr/014-optimistic-concurrency.md). Old browser tabs must reload after deployment.
+
+## Render Free und Neon
+Der [Cloud-Operatorguide](docs/cloud-deployment.md) beschreibt PostgreSQL, verschlüsselte persistente Schlüssel, das gemeinsame Image und den manuellen Release-Workflow. Siehe [ADR 017](docs/architecture/adr/017-cloud-deployment.md). SQLite bleibt für lokale Entwicklung unterstützt.
 
 ## PWA hosting
 [ADR 016](docs/architecture/adr/016-installable-webapp.md) records the public-shell boundary. Static hosting and deployment instructions live in the matching frontend's docs/pwa.md; backend API no-store and authorization remain unchanged. Use feature/Installable-WebApp in both checkouts for this release.

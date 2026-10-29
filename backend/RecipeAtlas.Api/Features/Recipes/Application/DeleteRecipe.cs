@@ -8,7 +8,7 @@ public sealed class DeleteRecipe(RecipeDb db, CookbookAccess access)
 {
     public async Task<bool> ExecuteAsync(Guid cookbookId, Guid id, VersionPrecondition expected, CancellationToken ct)
     {
-        await using var tx = await db.Database.BeginTransactionAsync(IsolationLevel.Serializable, ct);
+        await using var tx = await WriteTransaction.BeginAsync(db, ct);
         await access.RequireAsync(cookbookId, CookbookPermission.Write, ct);
         var recipe = await db.Recipes.SingleOrDefaultAsync(x => x.Id == id && x.CookbookId == cookbookId, ct);
         if (recipe is null) throw new OperationFailure(404, "This recipe is no longer available.", "resource_unavailable");

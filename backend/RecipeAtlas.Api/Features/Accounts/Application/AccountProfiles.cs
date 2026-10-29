@@ -22,7 +22,7 @@ public sealed class AccountProfiles(RecipeDb db, AccountAccess access, UserManag
 
     public async Task<CurrentUserResponse> UpdateAsync(UpdateProfileInput input, CancellationToken ct)
     {
-        await using var tx = await db.Database.BeginTransactionAsync(IsolationLevel.Serializable, ct);
+        await using var tx = await WriteTransaction.BeginAsync(db, ct);
         var active = await access.RequireActiveAsync(ct);
         var profile = AccountValidation.Profile(active.UserName, input.DisplayName);
         var email = AccountValidation.ContactEmail(input.Email);
@@ -42,7 +42,7 @@ public sealed class AccountProfiles(RecipeDb db, AccountAccess access, UserManag
     {
         await access.RequireActiveAsync(ct);
         var uploaded = await ImageUpload.ReadAsync(body, length, ct);
-        await using var tx = await db.Database.BeginTransactionAsync(IsolationLevel.Serializable, ct);
+        await using var tx = await WriteTransaction.BeginAsync(db, ct);
         var user = await access.RequireActiveAsync(ct);
         var image = await db.ProfileImages.SingleOrDefaultAsync(x => x.UserId == user.Id, ct);
         if (image is null)
@@ -64,7 +64,7 @@ public sealed class AccountProfiles(RecipeDb db, AccountAccess access, UserManag
 
     public async Task RemoveImageAsync(CancellationToken ct)
     {
-        await using var tx = await db.Database.BeginTransactionAsync(IsolationLevel.Serializable, ct);
+        await using var tx = await WriteTransaction.BeginAsync(db, ct);
         var user = await access.RequireActiveAsync(ct);
         await db.ProfileImages.Where(x => x.UserId == user.Id).ExecuteDeleteAsync(ct);
         await tx.CommitAsync(ct);

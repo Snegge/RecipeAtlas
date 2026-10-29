@@ -10,6 +10,11 @@
     <AllowMissingPrunePackageData>true</AllowMissingPrunePackageData>
   </PropertyGroup>
   <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.DataProtection.EntityFrameworkCore" Version="10.0.12" />
+    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.3" />
+    <PackageReference Include="System.Security.Cryptography.Pkcs" Version="10.0.14" />
+    <!-- Explicit security patch also protects console hosts using the API assembly. -->
+    <PackageReference Include="System.Security.Cryptography.Xml" Version="10.0.14" NoWarn="NU1510" />
     <ProjectReference Include="../Recipoke.Domain/Recipoke.Domain.csproj" />
     <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.12" />
     <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="10.0.12" />

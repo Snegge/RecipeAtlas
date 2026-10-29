@@ -8,7 +8,7 @@ public sealed class UpdateRecipe(RecipeDb db, CookbookAccess access)
 {
     public async Task<SaveRecipeResult> ExecuteAsync(Guid cookbookId, Guid id, RecipeInput input, CancellationToken ct)
     {
-        await using var tx = await db.Database.BeginTransactionAsync(IsolationLevel.Serializable, ct);
+        await using var tx = await WriteTransaction.BeginAsync(db, ct);
         await access.RequireAsync(cookbookId, CookbookPermission.Write, ct);
         var recipe = await db.Recipes.Include(x => x.Ingredients).Include(x => x.Steps)
             .AsSplitQuery().SingleOrDefaultAsync(x => x.Id == id && x.CookbookId == cookbookId, ct);

@@ -26,7 +26,7 @@ public static class ConcurrencyWrites
             await failed.RollbackAsync(ct);
             await failed.DisposeAsync();
             db.ChangeTracker.Clear();
-            await using var check = await db.Database.BeginTransactionAsync(IsolationLevel.Serializable, ct);
+            await using var check = await WriteTransaction.BeginAsync(db, ct);
             await requireCurrentAccess();
             throw expected.Conflict();
         }

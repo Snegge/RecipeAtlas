@@ -22,7 +22,7 @@ public sealed class CookbookMedia(RecipeDb db, AccountAccess accounts, CookbookA
         await access.RequireAsync(id, CookbookPermission.Manage, ct);
         expected.Require();
         var upload = await ImageUpload.ReadAsync(body, length, ct);
-        await using var tx = await db.Database.BeginTransactionAsync(IsolationLevel.Serializable, ct);
+        await using var tx = await WriteTransaction.BeginAsync(db, ct);
         await access.RequireAsync(id, CookbookPermission.Manage, ct);
         var book = await db.Cookbooks.SingleAsync(x => x.Id == id, ct);
         ConcurrencyWrites.Advance(db.Entry(book).Property(x => x.Version), expected);
@@ -47,7 +47,7 @@ public sealed class CookbookMedia(RecipeDb db, AccountAccess accounts, CookbookA
 
     public async Task<CookbookResponse> RemoveAsync(Guid id, VersionPrecondition expected, CancellationToken ct)
     {
-        await using var tx = await db.Database.BeginTransactionAsync(IsolationLevel.Serializable, ct);
+        await using var tx = await WriteTransaction.BeginAsync(db, ct);
         await access.RequireAsync(id, CookbookPermission.Manage, ct);
         var book = await db.Cookbooks.SingleAsync(x => x.Id == id, ct);
         ConcurrencyWrites.Advance(db.Entry(book).Property(x => x.Version), expected);

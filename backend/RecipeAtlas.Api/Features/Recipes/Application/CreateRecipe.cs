@@ -9,7 +9,7 @@ public sealed class CreateRecipe(RecipeDb db, CookbookAccess access)
 {
     public async Task<SaveRecipeResult> ExecuteAsync(Guid cookbookId, RecipeInput input, CancellationToken ct)
     {
-        await using var tx = await db.Database.BeginTransactionAsync(IsolationLevel.Serializable, ct);
+        await using var tx = await WriteTransaction.BeginAsync(db, ct);
         await access.RequireAsync(cookbookId, CookbookPermission.Write, ct);
         var errors = RecipeValidation.Check(input);
         if (errors.Count > 0) return new(null, errors);

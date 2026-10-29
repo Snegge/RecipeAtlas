@@ -13,7 +13,7 @@ public sealed class AdministratorAccounts(RecipeDb db, AccountAccess access, Use
     }
     public async Task SetStatusAsync(Guid id, bool active, CancellationToken ct)
     {
-        await using var tx = await db.Database.BeginTransactionAsync(IsolationLevel.Serializable, ct);
+        await using var tx = await WriteTransaction.BeginAsync(db, ct);
         await access.RequireAdministratorAsync(ct);
         var user = await users.FindByIdAsync(id.ToString()) ?? throw new OperationFailure(404, "Account not found.");
         if (user.IsAdministrator) throw new OperationFailure(403, "Administrator accounts require server-side recovery.");

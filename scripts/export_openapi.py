@@ -15,7 +15,7 @@ root = Path(__file__).resolve().parents[1]
 parser = argparse.ArgumentParser()
 parser.add_argument('--check', action='store_true')
 args = parser.parse_args()
-dll = root / 'backend/RecipeAtlas.Api/bin/Debug/net10.0/Recipoke.Api.dll'
+dll = Path(os.environ.get('RECIPOKE_DLL', str(root / 'backend/RecipeAtlas.Api/bin/Debug/net10.0/Recipoke.Api.dll')))
 dotnet = os.environ.get('RECIPOKE_DOTNET', 'dotnet')
 with socket.socket() as sock:
     sock.bind(('127.0.0.1', 0))

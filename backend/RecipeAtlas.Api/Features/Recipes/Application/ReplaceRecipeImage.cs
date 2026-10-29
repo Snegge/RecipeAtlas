@@ -10,7 +10,7 @@ public sealed class ReplaceRecipeImage(RecipeDb db, CookbookAccess access)
     public const int MaxImageBytes = ImageUpload.MaxBytes;
     public async Task<ImageReplacementResult> ExecuteAsync(Guid cookbookId, Guid id, Stream body, long? contentLength, VersionPrecondition expected, CancellationToken ct)
     {
-        await using var tx = await db.Database.BeginTransactionAsync(IsolationLevel.Serializable, ct);
+        await using var tx = await WriteTransaction.BeginAsync(db, ct);
         await access.RequireAsync(cookbookId, CookbookPermission.Write, ct);
         expected.Require();
         if (contentLength > MaxImageBytes) return new(ImageReplacementError.TooLarge, null);

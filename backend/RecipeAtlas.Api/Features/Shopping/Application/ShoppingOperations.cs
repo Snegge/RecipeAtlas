@@ -15,7 +15,7 @@ public sealed partial class ShoppingOperations(RecipeDb db, AccountAccess accoun
         bool ownerOnly, VersionPrecondition? expected, Func<ShoppingList, Guid, Task<ShoppingMutationResponse>> change, CancellationToken ct,
         Guid? permittedSelfRemoval = null)
     {
-        await using var tx = await db.Database.BeginTransactionAsync(IsolationLevel.Serializable, ct);
+        await using var tx = await WriteTransaction.BeginAsync(db, ct);
         var actor = await accounts.RequireActiveAsync(ct);
         var requireOwner = ownerOnly && actor.Id != permittedSelfRemoval;
         await access.RequireAsync(listId, requireOwner, ct);

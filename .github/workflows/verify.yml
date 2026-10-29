@@ -17,6 +17,8 @@ jobs:
       - run: dotnet build --no-restore
       # Console runner: dotnet test would not execute this suite.
       - run: dotnet run --no-build --project tests/Recipoke.Tests
+      - run: python3 scripts/test_cloud_env.py
+      - run: python3 scripts/test_build_cloud.py
       - run: python3 tests/integration.py
       - run: python3 tests/shopping_integration.py
       - name: Test accounts, UI support and concurrency with SQLite disposal checks
@@ -24,8 +26,9 @@ jobs:
       - run: python3 scripts/publish_pre_concurrency.py /tmp/recipoke-before-concurrency
       - run: python3 tests/concurrency_upgrade.py /tmp/recipoke-before-concurrency/Recipoke.Api.dll
       - run: python3 tests/test_contract_paths.py
-      - run: dotnet ef migrations list --no-connect --no-build --project backend/RecipeAtlas.Api
-      - run: dotnet ef migrations has-pending-model-changes --no-build --project backend/RecipeAtlas.Api
+      - run: dotnet ef migrations list --context RecipeDb --no-connect --no-build --project backend/RecipeAtlas.Api
+      - run: dotnet ef migrations has-pending-model-changes --context RecipeDb --no-build --project backend/RecipeAtlas.Api
+      - run: dotnet ef migrations has-pending-model-changes --context PostgresRecipeDb --no-build --project backend/RecipeAtlas.Api
       - run: python3 scripts/export_openapi.py --check
 
   windows-http:

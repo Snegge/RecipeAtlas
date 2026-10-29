@@ -15,7 +15,7 @@ import urllib.error
 import urllib.request
 
 ROOT = Path(__file__).resolve().parents[1]
-DLL = ROOT / "backend/RecipeAtlas.Api/bin/Debug/net10.0/Recipoke.Api.dll"
+DLL = Path(os.environ.get('RECIPOKE_DLL', str(ROOT / 'backend/RecipeAtlas.Api/bin/Debug/net10.0/Recipoke.Api.dll')))
 # An explicitly set new name wins; retain the legacy runner override.
 DOTNET = os.environ.get("RECIPOKE_DOTNET", os.environ.get("RECIPE_ATLAS_DOTNET", "dotnet"))
 if not DLL.exists():

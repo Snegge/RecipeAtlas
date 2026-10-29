@@ -19,7 +19,7 @@ import urllib.request
 import uuid
 
 ROOT = Path(__file__).resolve().parents[1]
-DLL = ROOT / 'backend/RecipeAtlas.Api/bin/Debug/net10.0/Recipoke.Api.dll'
+DLL = Path(os.environ.get('RECIPOKE_DLL', str(ROOT / 'backend/RecipeAtlas.Api/bin/Debug/net10.0/Recipoke.Api.dll')))
 DOTNET = os.environ.get('RECIPOKE_DOTNET', 'dotnet')
 PNG = b'\x89PNG\r\n\x1a\noriginal synthetic picture'
 OTHER_PNG = PNG + b' replacement'

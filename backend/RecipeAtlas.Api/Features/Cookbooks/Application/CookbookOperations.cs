@@ -32,7 +32,7 @@ public sealed class CookbookOperations(RecipeDb db, AccountAccess accounts, Cook
 
     public async Task<CookbookResponse> CreateAsync(CreateCookbookInput input, CancellationToken ct)
     {
-        await using var tx = await db.Database.BeginTransactionAsync(IsolationLevel.Serializable, ct);
+        await using var tx = await WriteTransaction.BeginAsync(db, ct);
         var user = await accounts.RequireActiveAsync(ct);
         if (input.Members?.Count > 100) throw new OperationFailure(400, "Invite at most 100 members at a time.");
         if (input.Members?.Any(member => member is null) == true)
@@ -51,7 +51,7 @@ public sealed class CookbookOperations(RecipeDb db, AccountAccess accounts, Cook
 
     public async Task<CookbookResponse> RenameAsync(Guid id, CookbookNameInput input, CancellationToken ct)
     {
-        await using var tx = await db.Database.BeginTransactionAsync(IsolationLevel.Serializable, ct);
+        await using var tx = await WriteTransaction.BeginAsync(db, ct);
         await access.RequireAsync(id, CookbookPermission.Manage, ct);
         var book = await db.Cookbooks.SingleAsync(x => x.Id == id, ct);
         var expected = new VersionPrecondition(input.ExpectedVersion);
@@ -66,7 +66,7 @@ public sealed class CookbookOperations(RecipeDb db, AccountAccess accounts, Cook
 
     public async Task DeleteAsync(Guid id, VersionPrecondition expected, CancellationToken ct)
     {
-        await using var tx = await db.Database.BeginTransactionAsync(IsolationLevel.Serializable, ct);
+        await using var tx = await WriteTransaction.BeginAsync(db, ct);
         await access.RequireAsync(id, CookbookPermission.Manage, ct);
         var book = await db.Cookbooks.SingleAsync(x => x.Id == id, ct);
         ConcurrencyWrites.Advance(db.Entry(book).Property(x => x.Version), expected);
@@ -104,7 +104,7 @@ public sealed class CookbookOperations(RecipeDb db, AccountAccess accounts, Cook
 
     public async Task<VersionResponse?> ChangeMemberAsync(Guid id, Guid userId, string? role, bool remove, VersionPrecondition expected, CancellationToken ct)
     {
-        await using var tx = await db.Database.BeginTransactionAsync(IsolationLevel.Serializable, ct);
+        await using var tx = await WriteTransaction.BeginAsync(db, ct);
         var actor = await accounts.RequireActiveAsync(ct);
         var permission = remove && actor.Id == userId ? CookbookPermission.Read : CookbookPermission.Manage;
         await access.RequireAsync(id, permission, ct);
