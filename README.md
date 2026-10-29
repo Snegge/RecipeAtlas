@@ -159,3 +159,6 @@ Concurrent editing and the coordinated version-contract upgrade are documented i
 
 ## Render Free und Neon
 Der [Cloud-Operatorguide](docs/cloud-deployment.md) beschreibt PostgreSQL, verschlüsselte persistente Schlüssel, das gemeinsame Image und den manuellen Release-Workflow. Siehe [ADR 017](docs/architecture/adr/017-cloud-deployment.md). SQLite bleibt für lokale Entwicklung unterstützt.
+
+## PWA hosting
+[ADR 016](docs/architecture/adr/016-installable-webapp.md) records the public-shell boundary. Static hosting and deployment instructions live in the matching frontend's docs/pwa.md; backend API no-store and authorization remain unchanged. Use feature/Installable-WebApp in both checkouts for this release.

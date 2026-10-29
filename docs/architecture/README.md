@@ -301,3 +301,6 @@ flowchart LR
 ```
 
 Die API-interne direkte EF-Abhängigkeit bleibt der dokumentierte Hybrid, keine strikte Clean Architecture. Gemeinsame Precondition-/CAS-Schritte reduzieren tatsächliche Duplikation (DRY), ohne Berechtigungs- oder Fachregeln zusammenzuwerfen (SRP/ISP). Die bestehenden Ports bleiben substituierbar; neue Schnittstellen oder Dispatcher wurden nicht erfunden (DIP/LSP/YAGNI). Die Erweiterung verlangt neue versionierte Operationen und explizite Testfälle statt zentraler Typverzweigungen (OCP). Die beiden Release-Verträge sind organisatorisch koordiniert (Conway). Versionswerte werden strikt geprüft und nicht aus fehlenden Werten erraten; tolerierte Mengenschreibweisen bleiben explizit normalisiert. Ausführliche gemessene Ergebnisse: [Step-6-Nachweis](../shared-editing.md#tatsächlich-ausgeführte-nachweise-2026-10-18).
+
+## Installable public shell
+See [ADR 016](adr/016-installable-webapp.md). Public frontend assets are cached by Angular; all private APIs and writes remain network-only.
