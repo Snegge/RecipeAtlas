@@ -1,0 +1,163 @@
+name: Release combined application
+on:
+  workflow_dispatch:
+    inputs:
+      backend_revision:
+        description: Full trusted backend commit SHA
+        required: true
+      frontend_revision:
+        description: Full trusted frontend commit SHA
+        required: true
+      deploy:
+        description: Deploy after publishing (otherwise publish only)
+        type: boolean
+        default: false
+permissions:
+  contents: read
+concurrency:
+  group: recipoke-release
+  cancel-in-progress: false
+jobs:
+  verify:
+    if: github.ref == format('refs/heads/{0}', github.event.repository.default_branch)
+    environment: release-source
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+          path: backend
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/checkout@v4
+        with:
+          repository: Snegge/RecipeAtlasFrontend
+          ref: ${{ vars.TRUSTED_FRONTEND_REF || 'main' }}
+          token: ${{ secrets.FRONTEND_READ_TOKEN }}
+          path: frontend
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Validate and select trusted immutable revisions
+        env:
+          BACKEND_SHA: ${{ inputs.backend_revision }}
+          FRONTEND_SHA: ${{ inputs.frontend_revision }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ "$BACKEND_SHA" =~ ^[0-9a-f]{40}$ && "$FRONTEND_SHA" =~ ^[0-9a-f]{40}$ ]]
+          git -C backend merge-base --is-ancestor "$BACKEND_SHA" HEAD
+          git -C frontend merge-base --is-ancestor "$FRONTEND_SHA" HEAD
+          git -C backend checkout --detach "$BACKEND_SHA"
+          git -C frontend checkout --detach "$FRONTEND_SHA"
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.401'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24.19.0'
+      - name: Backend checks
+        working-directory: backend
+        run: |
+          dotnet restore --locked-mode
+          dotnet build -c Release --no-restore
+          dotnet run -c Release --no-build --project tests/Recipoke.Tests
+          python3 scripts/test_cloud_env.py
+          python3 scripts/test_build_cloud.py
+          export RECIPOKE_DLL="$PWD/backend/RecipeAtlas.Api/bin/Release/net10.0/Recipoke.Api.dll"
+          python3 scripts/export_openapi.py --check
+          python3 tests/integration.py
+          python3 tests/accounts_integration.py
+          python3 tests/concurrency_integration.py
+          python3 tests/shopping_integration.py
+      - name: Frontend checks
+        working-directory: frontend
+        run: |
+          npm ci
+          npm test
+          npm run check:contracts
+          npm run build
+      - name: Build and test the exact image
+        working-directory: backend
+        run: |
+          python3 scripts/build_cloud.py --frontend ../frontend --tag recipoke:release
+          python3 tests/cloud_integration.py --image recipoke:release --frontend ../frontend --chromium /usr/bin/google-chrome
+          docker save recipoke:release -o "$RUNNER_TEMP/recipoke.tar"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: verified-image
+          path: ${{ runner.temp }}/recipoke.tar
+          retention-days: 1
+  publish:
+    needs: verify
+    environment: release-publish
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      packages: write
+    outputs:
+      image: ${{ steps.push.outputs.image }}
+      digest: ${{ steps.push.outputs.digest }}
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: verified-image
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - id: push
+        env:
+          REPOSITORY: ${{ github.repository }}
+          BACKEND_SHA: ${{ inputs.backend_revision }}
+          FRONTEND_SHA: ${{ inputs.frontend_revision }}
+        run: |
+          set -euo pipefail
+          docker load -i recipoke.tar
+          image="ghcr.io/${REPOSITORY,,}"
+          tag="b${BACKEND_SHA}-f${FRONTEND_SHA}-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          docker tag recipoke:release "$image:$tag"
+          docker push "$image:$tag"
+          digest=$(docker image inspect "$image:$tag" --format '{{index .RepoDigests 0}}')
+          test -n "$digest"
+          echo "image=$image" >> "$GITHUB_OUTPUT"
+          echo "digest=$digest" >> "$GITHUB_OUTPUT"
+          printf 'Backend: `%s`\nFrontend: `%s`\nImage: `%s`\n' "$BACKEND_SHA" "$FRONTEND_SHA" "$digest" >> "$GITHUB_STEP_SUMMARY"
+  deploy:
+    if: inputs.deploy
+    needs: publish
+    environment: render-prototype
+    runs-on: ubuntu-24.04
+    permissions: {}
+    steps:
+      - name: Request exact digest and verify health when configured
+        env:
+          RENDER_DEPLOY_HOOK_URL: ${{ secrets.RENDER_DEPLOY_HOOK_URL }}
+          HEALTH_URL: ${{ vars.RENDER_HEALTH_URL }}
+          IMAGE_DIGEST: ${{ needs.publish.outputs.digest }}
+          BACKEND_SHA: ${{ inputs.backend_revision }}
+          FRONTEND_SHA: ${{ inputs.frontend_revision }}
+        shell: python
+        run: |
+          import os,time,urllib.request,urllib.parse
+          hook=os.environ['RENDER_DEPLOY_HOOK_URL']
+          if not hook.startswith('https://api.render.com/deploy/'):raise SystemExit('Configure a valid Render deploy hook.')
+          url=hook+('&' if '?' in hook else '?')+urllib.parse.urlencode({'imgURL':os.environ['IMAGE_DIGEST']})
+          try:
+              with urllib.request.urlopen(urllib.request.Request(url,method='POST'),timeout=30) as response:
+                  if response.status not in (200,202):raise RuntimeError()
+          except Exception:raise SystemExit('Render rejected the deployment request or could not be reached; hook omitted.')
+          print('Render accepted the deployment request. This does not establish application health.')
+          health=os.environ.get('HEALTH_URL')
+          if not health:
+              print('No RENDER_HEALTH_URL configured; Render deployment status remains unverified.')
+          else:
+              if not health.startswith('https://'):raise SystemExit('Health URL must use HTTPS.')
+              for attempt in range(60):
+                  try:
+                      with urllib.request.urlopen(health,timeout=10) as r:
+                          if r.status==200 and r.headers.get('X-Recipoke-Backend')==os.environ['BACKEND_SHA'] and r.headers.get('X-Recipoke-Frontend')==os.environ['FRONTEND_SHA']:
+                              print('Requested release is healthy.');break
+                  except Exception:pass
+                  time.sleep(10)
+              else:raise SystemExit('Deployment accepted, but requested release did not become healthy within the verification window. Check Render.')

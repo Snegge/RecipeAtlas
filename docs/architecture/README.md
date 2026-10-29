@@ -2,7 +2,7 @@
 
 ## Ziel und Geltungsbereich
 
-Recipoke ist eine einladungsbasierte Rezeptanwendung mit individuellen Konten, geteilten Cookbooks und unabhängigen Shopping Lists: ein ASP.NET-Core-Prozess, eine SQLite-Datenbank und ein Angular-Frontend. Owner, Editor und Viewer begrenzen den Zugriff pro Cookbook; Shopping Lists besitzen eigene Owner-/Member-Mitgliedschaften. Globale Account-Administration gewährt keinen automatischen Inhaltszugriff. Offline-Synchronisation und Cooking Sessions sind weiterhin nicht implementiert.
+Recipoke ist eine einladungsbasierte Rezeptanwendung mit individuellen Konten, geteilten Cookbooks und unabhängigen Shopping Lists: ein ASP.NET-Core-Prozess, SQLite lokal oder PostgreSQL in der Cloud und ein Angular-Frontend. Owner, Editor und Viewer begrenzen den Zugriff pro Cookbook; Shopping Lists besitzen eigene Owner-/Member-Mitgliedschaften. Globale Account-Administration gewährt keinen automatischen Inhaltszugriff. Offline-Synchronisation und Cooking Sessions sind weiterhin nicht implementiert.
 
 Die Shopping-Erweiterung folgt [ADR 015](adr/015-shared-shopping-lists.md): eigene Versionen pro Item, administrative Listenversion, feste 15-Sekunden-Editierreservierung ohne Verlängerung, atomare Retry-Receipts und SignalR-Invalidierungen. Domain-Regeln liegen in `Recipoke.Domain/Shopping`, Operationen/HTTP/Benachrichtigungsadapter in `Features/Shopping`, EF-Mappings in der bestehenden Persistenz-Infrastruktur. Der [Shopping-Runbook](../shared-shopping-lists.md) beschreibt Betrieb und Tests; der [Verifikationsbericht](../verification/shared-shoppinglist.md) trennt ausgeführte Nachweise von offenen Prüfungen.
 
@@ -11,6 +11,8 @@ Der vorhandene Architekturhybrid bleibt bestehen. [Account-Runbook](../accounts-
 Die Architektur ist ein bewusster **Hybrid aus featureorientiertem Monolith und unabhängiger Domain-Assembly**. Sie ist keine strikte Clean Architecture: ausgewählte Application-Operationen verwenden EF Core direkt. Zusätzliche Application-/Infrastructure-Projekte, generische Repositories und eine weitere Unit-of-Work-Abstraktion würden hier die vorhandenen Verantwortlichkeiten überwiegend verdoppeln.
 
 Die ADRs in [adr/](adr/) dokumentieren Kontext, Alternativen, Konsequenzen und überprüfbare Grenzen. Die technische Form ist eine Entscheidung für Recipoke, keine Vorgabe eines Studienmoduls.
+
+Der Render-Prototyp folgt [ADR 017](adr/017-cloud-deployment.md): ein gemeinsames ASP.NET-Core-/Angular-Image, eigene PostgreSQL-Migrationen und ein verschluesselter PostgreSQL-Keyring. [Operatorguide](../cloud-deployment.md) und [Cloud-Nachweise](../verification/cloud-deployment.md) beschreiben den neuen Betriebspfad. Domain, Autorisierung und Konfliktregeln bleiben unveraendert.
 
 ## Historischer Refactoring-Ausgangspunkt
 
@@ -39,7 +41,7 @@ backend/
     Cookbooks/               # Cookbook, Membership, Rollen-/Fähigkeitsregeln
     Accounts/                # reine Invitation-Zustandsregel
   RecipeAtlas.Api/            # absichtlich stabiler Content Root; Recipoke.Api.csproj
-    Program.cs               # sichtbarer Composition Root und Startup-Migration
+    Program.cs               # sichtbarer Composition Root und providerspezifische Initialisierung
     Features/
       Authentication/
         Api/                 # HTTP-Cookie-Endpunkte
@@ -68,6 +70,9 @@ backend/
       RecipeDb.cs
       AppUser.cs             # Identity-Persistenztypen, außerhalb Domain
       RecipeDbFactory.cs
+      PostgresRecipeDb.cs     # PostgreSQL-Modell und EF-Keyring
+      PostgresMigrations/    # eigener Snapshot; SQLite-Historie unveraendert
+      WriteTransaction.cs    # bestehende Schreibreihenfolge je Provider
       Configurations/        # Fluent API je vorhandener Entität
       Migrations/            # alte IDs erhalten; additive AccountsAndCookbooks-Migration
     Common/Application/      # kleiner operationsbezogener Fehler, kein Result-Framework
@@ -97,7 +102,7 @@ flowchart TD
   Recipes --> Domain[Recipoke.Domain]
   Recipes --> EF[RecipeDb / Fluent mappings]
   EF --> Domain
-  EF --> SQLite[(SQLite: Rezepte, Bilder, Identity, Cookbooks, Invitations)]
+  EF --> Database[(SQLite lokal / PostgreSQL Cloud: Daten und Identitaet)]
   Imports --> Domain
   Imports --> Ports[Application-owned provider contracts]
   Website[Website adapter] -. implements .-> Ports
