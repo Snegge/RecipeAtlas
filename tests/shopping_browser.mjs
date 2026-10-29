@@ -53,7 +53,7 @@ try {
       throw new Error('Browser condition not satisfied: ' + expression.slice(0, 150));
     };
     const go = async path => { await send('Page.navigate', { url: origin + path }); await wait('!!document.querySelector("app-root")'); };
-    const click = selector => evaluate(`(()=>{const e=document.querySelector(${JSON.stringify(selector)});if(!e||e.disabled)throw Error('control unavailable');e.click();})()`);
+    const click = async selector => { await wait(`!!document.querySelector(${JSON.stringify(selector)}) && !document.querySelector(${JSON.stringify(selector)}).disabled`); return evaluate(`(()=>{const e=document.querySelector(${JSON.stringify(selector)});if(!e||e.disabled)throw Error('control unavailable');e.click();})()`); };
     const fill = (selector, value) => evaluate(`(()=>{const e=document.querySelector(${JSON.stringify(selector)});e.focus();e.value=${JSON.stringify(value)};e.dispatchEvent(new Event('input',{bubbles:true}));})()`);
     await go('/login');
     await evaluate(`fetch('/api/auth/login',{method:'POST',headers:{'Content-Type':'application/json','X-RecipeAtlas':'1'},body:JSON.stringify(${JSON.stringify({username: account.username, password: test.password})})}).then(r=>{if(!r.ok)throw Error('login failed')})`);
@@ -71,7 +71,7 @@ try {
   check(!!listId, 'Overview creates and previews named list');
   await a.click('[data-testid=shopping-card]');
   await a.wait('!!document.querySelector("[data-testid=add-item]")');
-  await a.click('[data-testid=list-settings]');
+  await a.click('[role=tab]:nth-child(2)');
   await a.fill('[data-testid=invite-username]', member.username);
   await a.click('[data-testid=invite-member]');
   await a.wait('document.body.textContent.includes("Pending invitations")');
@@ -82,7 +82,7 @@ try {
   await b.click('[data-testid=shopping-card]');
   await b.wait('!!document.querySelector("[data-testid=add-item]")');
   check(true, 'Owner invitation and member acceptance work through the UI');
-  await a.click('[data-testid=list-settings]');
+  await a.click('[role=tab]:first-child');
 
   for (const text of ['Milk', 'Bread']) {
     await a.fill('[data-testid=add-item]', text);
@@ -112,9 +112,9 @@ try {
   check(await b.evaluate('document.activeElement === document.querySelector("[data-testid=add-item]")'),
     'Keyboard checkbox action leaves focus on enabled quick entry');
   await a.click(row(bread) + ' [data-testid=remove-item]');
-  await a.wait('!!document.querySelector("[data-testid=undo-item]")');
+  await a.wait('!!document.querySelector("mat-snack-bar-container button")');
   await b.wait(`!document.querySelector(${JSON.stringify(row(bread))})`);
-  await a.click('[data-testid=undo-item]');
+  await a.click('mat-snack-bar-container button');
   await b.wait(`!!document.querySelector(${JSON.stringify(row(bread))})`);
   check(true, 'Removal and Undo restore the same item on both phones');
   check(await a.evaluate('document.documentElement.scrollWidth <= innerWidth'), '390px detail has no horizontal overflow');
@@ -133,7 +133,7 @@ try {
   await b.click(row(bread) + ' [data-testid=edit-item]');
   await b.wait('!!document.querySelector("[data-testid=item-draft]:not([readonly])")');
   await b.fill('[data-testid=item-draft]', 'Bread for Saturday');
-  await a.click('[data-testid=list-settings]');
+  await a.click('[role=tab]:nth-child(2)');
   await a.click('[data-testid=delete-list]');
   await a.wait('!!document.querySelector("mat-dialog-container")');
   await a.wait('!!document.activeElement.closest("mat-dialog-container")');

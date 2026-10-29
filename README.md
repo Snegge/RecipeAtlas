@@ -156,3 +156,6 @@ python3 tests/ui_upgrade.py /path/to/pre-ui-publish/Recipoke.Api.dll
 ```
 
 Concurrent editing and the coordinated version-contract upgrade are documented in [the German runbook](docs/shared-editing.md) and [ADR 014](docs/architecture/adr/014-optimistic-concurrency.md). Old browser tabs must reload after deployment.
+
+## PWA hosting
+[ADR 016](docs/architecture/adr/016-installable-webapp.md) records the public-shell boundary. Static hosting and deployment instructions live in the matching frontend's docs/pwa.md; backend API no-store and authorization remain unchanged. Use feature/Installable-WebApp in both checkouts for this release.
