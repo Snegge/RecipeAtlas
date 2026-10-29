@@ -7,8 +7,10 @@ using Recipoke.Api.Infrastructure.Persistence.Configurations;
 
 namespace Recipoke.Api.Infrastructure.Persistence;
 
-public sealed class RecipeDb(DbContextOptions<RecipeDb> options) : IdentityUserContext<AppUser, Guid>(options)
+public class RecipeDb : IdentityUserContext<AppUser, Guid>
 {
+    public RecipeDb(DbContextOptions<RecipeDb> options) : base(options) {}
+    protected RecipeDb(DbContextOptions options) : base(options) {}
     public DbSet<Recipe> Recipes => Set<Recipe>();
     public DbSet<RecipeImage> Images => Set<RecipeImage>();
     public DbSet<Cookbook> Cookbooks => Set<Cookbook>();

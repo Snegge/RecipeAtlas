@@ -9,7 +9,7 @@ public sealed class AccountAuthentication(RecipeDb db, UserManager<AppUser> user
     public async Task<Guid?> AuthenticateAsync(string? username, string? password, CancellationToken ct)
     {
         if (string.IsNullOrWhiteSpace(username) || password is null || password.Length > 256) return null;
-        await using var tx = await db.Database.BeginTransactionAsync(IsolationLevel.Serializable, ct);
+        await using var tx = await WriteTransaction.BeginAsync(db, ct);
         var user = await users.FindByNameAsync(username.Trim());
         if (user is null) return null;
         await db.Entry(user).ReloadAsync(ct);
@@ -22,7 +22,7 @@ public sealed class AccountAuthentication(RecipeDb db, UserManager<AppUser> user
     public async Task<Guid> ChangePasswordAsync(ChangePasswordInput input, CancellationToken ct)
     {
         AccountValidation.Password(input.NewPassword);
-        await using var tx = await db.Database.BeginTransactionAsync(IsolationLevel.Serializable, ct);
+        await using var tx = await WriteTransaction.BeginAsync(db, ct);
         var active = await access.RequireActiveAsync(ct);
         var user = await users.FindByIdAsync(active.Id.ToString());
         await db.Entry(user!).ReloadAsync(ct);

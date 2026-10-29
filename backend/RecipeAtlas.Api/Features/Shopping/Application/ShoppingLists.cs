@@ -8,7 +8,7 @@ public sealed partial class ShoppingOperations
 {
     public async Task<ShoppingMutationResponse> CreateAsync(CreateShoppingListInput input, CancellationToken ct = default)
     {
-        await using var tx = await db.Database.BeginTransactionAsync(IsolationLevel.Serializable, ct);
+        await using var tx = await WriteTransaction.BeginAsync(db, ct);
         var actor = await accounts.RequireActiveAsync(ct);
         RequireId(input.ListId, "listId"); RequireId(input.OperationId, "operationId");
         if (await db.ShoppingListTombstones.AnyAsync(x => x.Id == input.ListId, ct)) throw ShoppingAccess.Unavailable();
@@ -38,7 +38,7 @@ public sealed partial class ShoppingOperations
 
     public async Task DeleteAsync(Guid listId, VersionPrecondition expected, Guid operationId, CancellationToken ct = default)
     {
-        await using var tx = await db.Database.BeginTransactionAsync(IsolationLevel.Serializable, ct);
+        await using var tx = await WriteTransaction.BeginAsync(db, ct);
         await access.RequireAsync(listId, true, ct);
         RequireId(operationId, "operationId");
         var actor = await accounts.RequireActiveAsync(ct);
@@ -79,7 +79,7 @@ public sealed partial class ShoppingOperations
 
     public async Task<ShoppingMutationResponse> RespondAsync(Guid listId, Guid invitationId, RespondShoppingInvitationInput input, CancellationToken ct = default)
     {
-        await using var tx = await db.Database.BeginTransactionAsync(IsolationLevel.Serializable, ct);
+        await using var tx = await WriteTransaction.BeginAsync(db, ct);
         var actor = await accounts.RequireActiveAsync(ct);
         var invitation = await db.ShoppingInvitations.SingleOrDefaultAsync(x => x.Id == invitationId && x.ListId == listId && x.UserId == actor.Id, ct);
         if (invitation is null) await access.RequireAsync(listId, false, ct);

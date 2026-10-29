@@ -7,7 +7,7 @@ public sealed partial class ShoppingOperations
 {
     public async Task<ShoppingReservationResponse> AcquireAsync(Guid listId, Guid itemId, AcquireShoppingReservationInput input, CancellationToken ct = default)
     {
-        await using var tx = await db.Database.BeginTransactionAsync(IsolationLevel.Serializable, ct);
+        await using var tx = await WriteTransaction.BeginAsync(db, ct);
         var actor = await accounts.RequireActiveAsync(ct);
         await access.RequireAsync(listId, false, ct);
         RequireId(input.Token, "token");
@@ -39,7 +39,7 @@ public sealed partial class ShoppingOperations
 
     public async Task ReleaseAsync(Guid listId, Guid itemId, Guid token, CancellationToken ct = default)
     {
-        await using var tx = await db.Database.BeginTransactionAsync(IsolationLevel.Serializable, ct);
+        await using var tx = await WriteTransaction.BeginAsync(db, ct);
         var actor = await accounts.RequireActiveAsync(ct);
         await access.RequireAsync(listId, false, ct);
         await ItemAsync(listId, itemId, ct);

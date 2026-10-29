@@ -1,3 +1,4 @@
+using Recipoke.Api.Infrastructure.Hosting;
 using Recipoke.Api.Common.Http;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Identity;
@@ -20,24 +21,22 @@ using Recipoke.Api.Features.Shopping;
 using Recipoke.Api.Features.Shopping.Api;
 using Recipoke.Api.Features.Shopping.Infrastructure;
 
-var builder = WebApplication.CreateBuilder(args);
-var dataDirectory = Path.GetFullPath(builder.Configuration["DataDirectory"] ?? "data",
-    builder.Environment.ContentRootPath);
-Directory.CreateDirectory(dataDirectory);
-var connection = new SqliteConnectionStringBuilder
+if (args.Length == 2 && args[0] == "--generate-protection-certificate")
 {
-    DataSource = Path.Combine(dataDirectory, "recipes.db"),
-    ForeignKeys = true
-}.ToString();
-
+    ProtectionCertificate.Generate(args[1]);
+    return;
+}
+var builder = WebApplication.CreateBuilder(args);
+var administration = args.Any(x => x is "--migrate" or "--migration-status" or "--bootstrap-admin" or "--recover-admin");
+var postgres = builder.AddPersistence(administration);
+if (builder.Configuration["PORT"] is { } port)
+{
+    if (!int.TryParse(port, out var number) || number is < 1 or > 65535) throw new InvalidOperationException("Invalid PORT.");
+    builder.WebHost.UseUrls($"http://0.0.0.0:{number}");
+}
 builder.WebHost.ConfigureKestrel(options => options.Limits.MaxRequestBodySize = 6 * 1024 * 1024);
-builder.Services.AddDbContext<RecipeDb>(options => options.UseSqlite(connection));
 builder.Services.AddProblemDetails();
 builder.Services.AddApiDescription();
-// Keep the established key ring and application discriminator; the new Identity scheme rejects owner cookies.
-builder.Services.AddDataProtection().SetApplicationName("RecipeAtlas")
-    .PersistKeysToFileSystem(new DirectoryInfo(Path.Combine(dataDirectory, "keys")));
-
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.Configure<AccountOptions>(builder.Configuration.GetSection("Accounts"));
@@ -95,7 +94,15 @@ builder.Services.AddRecipeImport();
 builder.Services.AddShoppingOperations();
 builder.Services.AddShoppingRealtime();
 
+if (postgres && !administration)
+{
+    if (!Uri.TryCreate(builder.Configuration["Accounts:PublicAppUrl"], UriKind.Absolute, out var publicUrl)
+        || publicUrl.Scheme != "https" || publicUrl.UserInfo.Length != 0 || publicUrl.Query.Length != 0 || publicUrl.Fragment.Length != 0
+        || publicUrl.AbsolutePath != "/") throw new InvalidOperationException("Accounts:PublicAppUrl must be an HTTPS origin.");
+}
 var app = builder.Build();
+// Render terminates TLS. Cookies are explicitly Secure; trusted links use PublicAppUrl, not forwarded headers.
+app.UseApplicationShell();
 // Deliberate exposure policy: no documentation route in Production.
 if (app.Environment.IsDevelopment()) app.MapOpenApi();
 app.UseExceptionHandler(new ExceptionHandlerOptions
@@ -117,11 +124,28 @@ app.UseAuthentication();
 app.UseAuthorization();
 app.UseRateLimiter();
 
-// Deliberate single-instance deployment. Back up before upgrading the schema.
 await using (var scope = app.Services.CreateAsyncScope())
-    await scope.ServiceProvider.GetRequiredService<RecipeDb>().Database.MigrateAsync();
+{
+    var db = scope.ServiceProvider.GetRequiredService<RecipeDb>();
+    using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(90));
+    if (!postgres || args.Contains("--migrate")) await db.Database.MigrateAsync(timeout.Token);
+    var pending = (await db.Database.GetPendingMigrationsAsync(timeout.Token)).ToArray();
+    if (args.Contains("--migration-status"))
+    {
+        Console.WriteLine($"Pending migrations: {pending.Length}");
+        Environment.ExitCode = pending.Length == 0 ? 0 : 2;
+        return;
+    }
+    if (pending.Length != 0) throw new InvalidOperationException("Schema upgrade required. Run --migrate before starting the application.");
+    if (args.Contains("--migrate")) { Console.WriteLine("Schema is current."); return; }
+}
 
-app.MapGet("/health", () => Results.Ok(new { status = "ok" }));
+app.MapGet("/health", (HttpContext context) =>
+{
+    context.Response.Headers["X-Recipoke-Backend"] = app.Configuration["Release:Backend"] ?? "local";
+    context.Response.Headers["X-Recipoke-Frontend"] = app.Configuration["Release:Frontend"] ?? "local";
+    return Results.Ok(new { status = "ok" });
+});
 
 if (args.Contains("--bootstrap-admin") || args.Contains("--recover-admin"))
 {

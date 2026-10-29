@@ -8,7 +8,7 @@ public sealed class AdministratorSetup(RecipeDb db, UserManager<AppUser> users, 
     public Task<bool> IsCompleteAsync(CancellationToken ct) => db.AccountSetups.AnyAsync(ct);
     public async Task<bool> BootstrapAsync(string username, string displayName, string password, CancellationToken ct)
     {
-        await using var tx = await db.Database.BeginTransactionAsync(IsolationLevel.Serializable, ct);
+        await using var tx = await WriteTransaction.BeginAsync(db, ct);
         if (await IsCompleteAsync(ct)) return false; // Retry never changes existing credentials or content.
         var profile = AccountValidation.Profile(username, displayName); AccountValidation.Password(password);
         var user = await users.FindByIdAsync(LegacySetup.UserId.ToString()) ?? throw new OperationFailure(409, "The reserved setup account is missing. Restore or repair the database offline.");
@@ -23,7 +23,7 @@ public sealed class AdministratorSetup(RecipeDb db, UserManager<AppUser> users, 
     public async Task RecoverAsync(string username, string password, CancellationToken ct)
     {
         AccountValidation.Password(password);
-        await using var tx = await db.Database.BeginTransactionAsync(IsolationLevel.Serializable, ct);
+        await using var tx = await WriteTransaction.BeginAsync(db, ct);
         if (!await IsCompleteAsync(ct)) throw new OperationFailure(409, "Complete administrator setup first.");
         var user = await users.FindByNameAsync(username.Trim());
         if (user is null || !user.IsAdministrator) throw new OperationFailure(404, "Administrator not found.");

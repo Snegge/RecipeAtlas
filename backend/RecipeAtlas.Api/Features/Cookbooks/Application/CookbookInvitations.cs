@@ -27,7 +27,7 @@ public sealed class CookbookInvitations(RecipeDb db, AccountAccess accounts, Coo
 
     public async Task<VersionResponse> InviteAsync(Guid id, AddMemberInput input, CancellationToken ct)
     {
-        await using var tx = await db.Database.BeginTransactionAsync(IsolationLevel.Serializable, ct);
+        await using var tx = await WriteTransaction.BeginAsync(db, ct);
         await access.RequireAsync(id, CookbookPermission.Manage, ct);
         var book = await db.Cookbooks.SingleAsync(x => x.Id == id, ct);
         var expected = new VersionPrecondition(input.ExpectedVersion);
@@ -54,7 +54,7 @@ public sealed class CookbookInvitations(RecipeDb db, AccountAccess accounts, Coo
 
     public async Task RespondAsync(Guid id, bool accept, VersionPrecondition expected, CancellationToken ct)
     {
-        await using var tx = await db.Database.BeginTransactionAsync(IsolationLevel.Serializable, ct);
+        await using var tx = await WriteTransaction.BeginAsync(db, ct);
         var user = await accounts.RequireActiveAsync(ct);
         var invitation = await db.CookbookInvitations.SingleOrDefaultAsync(x => x.Id == id && x.UserId == user.Id, ct)
             ?? throw new OperationFailure(404, "Cookbook invitation not found.", "resource_unavailable");
@@ -78,7 +78,7 @@ public sealed class CookbookInvitations(RecipeDb db, AccountAccess accounts, Coo
 
     public async Task<VersionResponse> CancelAsync(Guid cookbookId, Guid userId, VersionPrecondition expected, CancellationToken ct)
     {
-        await using var tx = await db.Database.BeginTransactionAsync(IsolationLevel.Serializable, ct);
+        await using var tx = await WriteTransaction.BeginAsync(db, ct);
         await access.RequireAsync(cookbookId, CookbookPermission.Manage, ct);
         var book = await db.Cookbooks.SingleAsync(x => x.Id == cookbookId, ct);
         ConcurrencyWrites.Advance(db.Entry(book).Property(x => x.Version), expected);

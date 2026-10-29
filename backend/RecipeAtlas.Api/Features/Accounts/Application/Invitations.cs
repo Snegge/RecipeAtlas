@@ -20,7 +20,7 @@ public sealed class Invitations(RecipeDb db, AccountAccess access, UserManager<A
     }
     public async Task<CreatedInvitation> CreateAsync(CancellationToken ct)
     {
-        await using var tx = await db.Database.BeginTransactionAsync(IsolationLevel.Serializable, ct);
+        await using var tx = await WriteTransaction.BeginAsync(db, ct);
         var issuer = await access.RequireAdministratorAsync(ct);
         var settings = options.Value;
         if (!Uri.TryCreate(settings.PublicAppUrl, UriKind.Absolute, out var publicUrl) || publicUrl.UserInfo.Length != 0 ||
@@ -47,7 +47,7 @@ public sealed class Invitations(RecipeDb db, AccountAccess access, UserManager<A
     }
     public async Task RevokeAsync(Guid id, CancellationToken ct)
     {
-        await using var tx = await db.Database.BeginTransactionAsync(IsolationLevel.Serializable, ct);
+        await using var tx = await WriteTransaction.BeginAsync(db, ct);
         await access.RequireAdministratorAsync(ct);
         var invitation = await db.Invitations.SingleOrDefaultAsync(x => x.Id == id, ct) ?? throw new OperationFailure(404, "Invitation not found.");
         if (Status(invitation) != "Pending") throw new OperationFailure(409, "Only pending invitations can be revoked.", "invitation_not_pending");
@@ -65,7 +65,7 @@ public sealed class Invitations(RecipeDb db, AccountAccess access, UserManager<A
         var profile = AccountValidation.Profile(input.Username, input.DisplayName); AccountValidation.Password(input.Password);
         var email = AccountValidation.ContactEmail(input.Email);
         // SQLite Serializable starts BEGIN IMMEDIATE: redemption/revocation are ordered before checking state.
-        await using var tx = await db.Database.BeginTransactionAsync(IsolationLevel.Serializable, ct);
+        await using var tx = await WriteTransaction.BeginAsync(db, ct);
         var invitation = await db.Invitations.SingleOrDefaultAsync(x => x.TokenHash == hash, ct);
         if (invitation is null || Status(invitation) != "Pending")
             throw new OperationFailure(400, "This invitation is invalid, expired, revoked or already used.", "invalid_invitation");

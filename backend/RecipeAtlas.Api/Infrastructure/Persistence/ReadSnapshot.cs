@@ -17,6 +17,8 @@ public sealed class ReadSnapshot : IAsyncDisposable
     public static async Task<ReadSnapshot> BeginAsync(RecipeDb db, CancellationToken ct)
     {
         if (db.Database.CurrentTransaction is not null) return new(db);
+        if (db.Database.IsNpgsql())
+            return new(db, ef: await db.Database.BeginTransactionAsync(System.Data.IsolationLevel.RepeatableRead, ct));
         await db.Database.OpenConnectionAsync(ct);
         SqliteTransaction? sqlite = null;
         try
@@ -34,8 +36,8 @@ public sealed class ReadSnapshot : IAsyncDisposable
 
     public async ValueTask DisposeAsync()
     {
-        if (sqlite is null) return;
         if (ef is not null) await ef.DisposeAsync();
+        if (sqlite is null) return;
         await sqlite.DisposeAsync();
         await db.Database.CloseConnectionAsync();
     }
