@@ -1,5 +1,5 @@
 // Production service-worker smoke; disposable backend, no external providers.
-import { readFile } from 'node:fs/promises';
+import { readFile, writeFile } from 'node:fs/promises';
 import { createServer } from 'node:http';
 import { join, resolve, extname } from 'node:path';
 import { createHash } from 'node:crypto';
@@ -80,15 +80,30 @@ try {
  for (const [name,size] of [['icon-192',192],['icon-512',512],['maskable-512',512],['apple-touch-icon',180]]) {
   assert.equal(await evaluate(`new Promise((resolve,reject)=>{const i=new Image();i.onload=()=>resolve(i.naturalWidth===${size}&&i.naturalHeight===${size});i.onerror=reject;i.src='/icons/${name}.png';})`),true);
  }
+ assert.equal(await evaluate(`fetch('/api/auth/login',{method:'POST',headers:{'Content-Type':'application/json','X-RecipeAtlas':'1'},body:JSON.stringify(${JSON.stringify({username:'administrator',password:test.password})})}).then(r=>r.status)`),204);
+ assert.equal(await evaluate(`fetch('/api/auth/me').then(r=>r.status)`),200);
+ await send('Page.navigate',{url:origin+'/settings'});
+ await wait('!!document.querySelector("app-settings button")');
+ assert.equal(await evaluate(`!!document.querySelector('.pwa-status button')`),false);
+ await evaluate(`document.querySelector('app-settings button').click()`);
+ await wait(`document.querySelector('app-settings').textContent.includes('On iPhone or iPad')`);
+ for (const width of [1280,390,320]) {
+  await send('Emulation.setDeviceMetricsOverride',{width,height:844,deviceScaleFactor:1,mobile:width<600});
+  assert.equal(await evaluate('document.documentElement.scrollWidth <= innerWidth'),true);
+  if (process.env.RECIPOKE_SCREENSHOTS) {
+   await evaluate(`new Promise(resolve=>{window.scrollTo(0,0);document.querySelector('mat-sidenav-content').scrollTop=0;requestAnimationFrame(()=>requestAnimationFrame(resolve));})`);
+   const screenshot = await send('Page.captureScreenshot', {format:'png'});
+   await writeFile(join(process.env.RECIPOKE_SCREENSHOTS, `settings-${width}.png`), Buffer.from(screenshot.data,'base64'));
+  }
+ }
  const installability = await send('Page.getInstallabilityErrors');
  assert.deepEqual(installability.installabilityErrors, []);
  await evaluate(`(()=>{const e=new Event('beforeinstallprompt',{cancelable:true});e.prompt=async()=>{window.installPromptUsed=true};window.dispatchEvent(e);Array.from(document.querySelectorAll('button')).find(b=>b.textContent.includes('Install Recipoke')).click();})()`);
  await wait('window.installPromptUsed === true');
  await evaluate(`window.dispatchEvent(new Event('appinstalled'))`);
- await wait(`!Array.from(document.querySelectorAll('button')).some(b=>b.textContent.includes('Install Recipoke'))`);
+ await wait(`document.querySelector('app-settings').textContent.includes("You're using the installed app.")`);
+ assert.equal(await evaluate(`!!document.querySelector('app-settings button')`),false);
 
- assert.equal(await evaluate(`fetch('/api/auth/login',{method:'POST',headers:{'Content-Type':'application/json','X-RecipeAtlas':'1'},body:JSON.stringify(${JSON.stringify({username:'administrator',password:test.password})})}).then(r=>r.status)`),204);
- assert.equal(await evaluate(`fetch('/api/auth/me').then(r=>r.status)`),200);
  const writesBeforeOffline = mutationRequests;
  await send('Emulation.setDeviceMetricsOverride',{width:390,height:844,deviceScaleFactor:1,mobile:true});
  networkUnavailable = true;

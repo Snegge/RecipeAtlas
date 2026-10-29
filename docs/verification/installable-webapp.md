@@ -23,3 +23,9 @@ Deployment limitations: Docker CLI exists but no daemon is available, and Caddy 
 Backend runtime code needs no PWA change: it serves no static SPA, and existing BrowserWriteProtection applies no-store and security headers to every response. ADR 016 and the frontend Caddy policies express that boundary.
 
 Frontend implementation commit: 6797608 (full hash available through git rev-parse). Both final branches and push status are reported in the task completion message.
+
+## Settings installation affordance follow-up
+
+Moved installation UI from the shell into the existing Settings page, reusing PwaService. Added a branded card, responsive primary action, manual instructions and installed-app status. Connection/update notices stay in the shell. Updated the production browser smoke to sign in and visit Settings before checking installation, and added optional RECIPOKE_SCREENSHOTS captures (output directory must exist).
+
+Verification: all 257 frontend tests and production build passed. Production PWA browser smoke passed, including manual instructions, prompt invocation, installed status, offline/cache boundaries and A/B reload. Settings has no horizontal page overflow at 320/390/1280px. Viewed mobile screenshots. An existing uncommitted app.component.scss change removes the shared 62px mobile main offset; this causes header overlap and was preserved, not included in these commits. Physical-device appearance was not checked in this follow-up.
