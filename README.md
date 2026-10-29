@@ -137,7 +137,9 @@ Bootstrap uses a terminal prompt. Recover an administrator with `docker compose 
 
 See [quantity strings/conversions](docs/quantity-strings.md) and [description-only social/text imports](docs/social-description-import.md). Website imports work without AI configuration. Social/text extraction uses the existing optional Gemini configuration and pinned yt-dlp setup. No new import capability is added by account sharing. External process networking still needs deployment-level egress isolation; HttpClient destination checks do not sandbox yt-dlp.
 
-Deferred: account deletion/promotion UI, ownership transfer, password-reset delivery, shopping lists, cooking sessions, offline sync. Safe recipe/cookbook concurrency now uses explicit versions and conflict review; see [shared editing](docs/shared-editing.md).
+Independent shared shopping lists now support text items, check-off, autosave, invitations, ownership transfer, Undo, safe retries and live updates. Editing protection lasts 15 seconds without renewal. See the [shopping runbook](docs/shared-shopping-lists.md), [ADR 015](docs/architecture/adr/015-shared-shopping-lists.md) and [verification evidence](docs/verification/shared-shoppinglist.md).
+
+Deferred: account deletion/promotion UI, cookbook ownership transfer, password-reset delivery, recipe-to-list import, cooking sessions and offline sync. Safe recipe/cookbook concurrency uses explicit versions and conflict review; see [shared editing](docs/shared-editing.md).
 
 ## Mobile UI, profiles and membership consent
 

@@ -16,6 +16,9 @@ using Recipoke.Api.Features.Recipes;
 using Recipoke.Api.Features.Recipes.Api;
 using Recipoke.Api.Features.RecipeImports;
 using Recipoke.Api.Features.RecipeImports.Api;
+using Recipoke.Api.Features.Shopping;
+using Recipoke.Api.Features.Shopping.Api;
+using Recipoke.Api.Features.Shopping.Infrastructure;
 
 var builder = WebApplication.CreateBuilder(args);
 var dataDirectory = Path.GetFullPath(builder.Configuration["DataDirectory"] ?? "data",
@@ -89,6 +92,8 @@ builder.Services.AddRateLimiter(options =>
 
 builder.Services.AddRecipeOperations();
 builder.Services.AddRecipeImport();
+builder.Services.AddShoppingOperations();
+builder.Services.AddShoppingRealtime();
 
 var app = builder.Build();
 // Deliberate exposure policy: no documentation route in Production.
@@ -130,5 +135,7 @@ AccountEndpoints.Map(app);
 CookbookEndpoints.Map(app);
 RecipeEndpoints.Map(app);
 RecipeImportEndpoints.Map(app);
+ShoppingEndpoints.Map(app);
+app.MapShoppingRealtime();
 
 app.Run();

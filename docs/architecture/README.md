@@ -2,7 +2,9 @@
 
 ## Ziel und Geltungsbereich
 
-Recipoke ist eine einladungsbasierte Rezeptanwendung mit individuellen Konten und geteilten Cookbooks: ein ASP.NET-Core-Prozess, eine SQLite-Datenbank und ein Angular-Frontend. Owner, Editor und Viewer begrenzen den Zugriff pro Cookbook. Globale Account-Administration gewährt keinen automatischen Inhaltszugriff. Offline-Synchronisation, Shopping Lists und Cooking Sessions sind weiterhin nicht implementiert.
+Recipoke ist eine einladungsbasierte Rezeptanwendung mit individuellen Konten, geteilten Cookbooks und unabhängigen Shopping Lists: ein ASP.NET-Core-Prozess, eine SQLite-Datenbank und ein Angular-Frontend. Owner, Editor und Viewer begrenzen den Zugriff pro Cookbook; Shopping Lists besitzen eigene Owner-/Member-Mitgliedschaften. Globale Account-Administration gewährt keinen automatischen Inhaltszugriff. Offline-Synchronisation und Cooking Sessions sind weiterhin nicht implementiert.
+
+Die Shopping-Erweiterung folgt [ADR 015](adr/015-shared-shopping-lists.md): eigene Versionen pro Item, administrative Listenversion, feste 15-Sekunden-Editierreservierung ohne Verlängerung, atomare Retry-Receipts und SignalR-Invalidierungen. Domain-Regeln liegen in `Recipoke.Domain/Shopping`, Operationen/HTTP/Benachrichtigungsadapter in `Features/Shopping`, EF-Mappings in der bestehenden Persistenz-Infrastruktur. Der [Shopping-Runbook](../shared-shopping-lists.md) beschreibt Betrieb und Tests; der [Verifikationsbericht](../verification/shared-shoppinglist.md) trennt ausgeführte Nachweise von offenen Prüfungen.
 
 Der vorhandene Architekturhybrid bleibt bestehen. [Account-Runbook](../accounts-and-cookbooks.md) und ADR 009–012 dokumentieren die neue Produktanforderung; ADR 001–008 beschreiben die frühere Refactoring-Basis, soweit nicht ausdrücklich ersetzt.
 

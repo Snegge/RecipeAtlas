@@ -193,8 +193,8 @@ with tempfile.TemporaryDirectory(prefix='recipoke-shared-upgrade-audit-') as dir
 
     with closing(sqlite3.connect(db_path)) as db:
         new_migrations = db.execute('SELECT MigrationId FROM __EFMigrationsHistory ORDER BY MigrationId').fetchall()
-        assert new_migrations[:-1] == old_migrations
-        assert new_migrations[-1][0].endswith('_OptimisticAggregateVersions')
+        assert new_migrations[:len(old_migrations)] == old_migrations
+        assert [row[0].split('_', 1)[1] for row in new_migrations[len(old_migrations):]] == ['OptimisticAggregateVersions', 'SharedShoppingLists']
         assert not db.execute('PRAGMA foreign_key_check').fetchall()
     print(f'Passed 3 upgrade audit scenarios and {checks} HTTP checks: representative content, '
           'quantities, order, image and membership preserved; migrated recipe and cookbook tokens '

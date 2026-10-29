@@ -41,6 +41,25 @@
         ],
         "type": "object"
       },
+      "AcquireShoppingReservationInput": {
+        "properties": {
+          "expectedVersion": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "token": {
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "token",
+          "expectedVersion"
+        ],
+        "type": "object"
+      },
       "AddMemberInput": {
         "additionalProperties": false,
         "properties": {
@@ -66,6 +85,30 @@
         "required": [
           "username",
           "role"
+        ],
+        "type": "object"
+      },
+      "AddShoppingItemInput": {
+        "properties": {
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "operationId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "text": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "text",
+          "operationId"
         ],
         "type": "object"
       },
@@ -257,6 +300,30 @@
         },
         "required": [
           "name"
+        ],
+        "type": "object"
+      },
+      "CreateShoppingListInput": {
+        "properties": {
+          "listId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "name": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "operationId": {
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "listId",
+          "name",
+          "operationId"
         ],
         "type": "object"
       },
@@ -561,6 +628,32 @@
         ],
         "type": "object"
       },
+      "InviteShoppingMemberInput": {
+        "properties": {
+          "expectedVersion": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "operationId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "username": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        },
+        "required": [
+          "username",
+          "expectedVersion",
+          "operationId"
+        ],
+        "type": "object"
+      },
       "LoginInput": {
         "additionalProperties": false,
         "properties": {
@@ -678,6 +771,29 @@
             ]
           }
         },
+        "type": "object"
+      },
+      "PurchasedShoppingItemInput": {
+        "properties": {
+          "expectedVersion": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "operationId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "purchased": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "purchased",
+          "expectedVersion",
+          "operationId"
+        ],
         "type": "object"
       },
       "RecipeCard": {
@@ -1047,6 +1163,55 @@
         ],
         "type": "object"
       },
+      "RenameShoppingListInput": {
+        "properties": {
+          "expectedVersion": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "name": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "operationId": {
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "expectedVersion",
+          "operationId"
+        ],
+        "type": "object"
+      },
+      "RespondShoppingInvitationInput": {
+        "properties": {
+          "accept": {
+            "type": "boolean"
+          },
+          "expectedVersion": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "operationId": {
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "accept",
+          "expectedVersion",
+          "operationId"
+        ],
+        "type": "object"
+      },
       "RespondToCookbookInvitationInput": {
         "additionalProperties": false,
         "properties": {
@@ -1065,6 +1230,54 @@
         ],
         "type": "object"
       },
+      "RestoreShoppingItemInput": {
+        "properties": {
+          "deletionOperationId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "operationId": {
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "deletionOperationId",
+          "operationId"
+        ],
+        "type": "object"
+      },
+      "SaveShoppingItemInput": {
+        "properties": {
+          "expectedVersion": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "operationId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "text": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "token": {
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "text",
+          "expectedVersion",
+          "token",
+          "operationId"
+        ],
+        "type": "object"
+      },
       "SetAccountStatusInput": {
         "additionalProperties": false,
         "properties": {
@@ -1074,6 +1287,341 @@
         },
         "required": [
           "isActive"
+        ],
+        "type": "object"
+      },
+      "ShoppingInvitationResponse": {
+        "properties": {
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "listId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "listName": {
+            "type": "string"
+          },
+          "listVersion": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "ownerDisplayName": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "listId",
+          "listName",
+          "ownerDisplayName",
+          "listVersion"
+        ],
+        "type": "object"
+      },
+      "ShoppingItemResponse": {
+        "properties": {
+          "editingBy": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "position": {
+            "format": "int64",
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ]
+          },
+          "purchased": {
+            "type": "boolean"
+          },
+          "reservationExpiresAtUtc": {
+            "format": "date-time",
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "text": {
+            "type": "string"
+          },
+          "version": {
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "text",
+          "purchased",
+          "version",
+          "position",
+          "editingBy",
+          "reservationExpiresAtUtc"
+        ],
+        "type": "object"
+      },
+      "ShoppingListResponse": {
+        "properties": {
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "invitations": {
+            "items": {
+              "$ref": "#/components/schemas/ShoppingPendingInvitation"
+            },
+            "type": "array"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/ShoppingItemResponse"
+            },
+            "type": "array"
+          },
+          "members": {
+            "items": {
+              "$ref": "#/components/schemas/ShoppingMemberResponse"
+            },
+            "type": "array"
+          },
+          "name": {
+            "type": "string"
+          },
+          "role": {
+            "type": "string"
+          },
+          "version": {
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "role",
+          "version",
+          "items",
+          "members",
+          "invitations"
+        ],
+        "type": "object"
+      },
+      "ShoppingListSummary": {
+        "properties": {
+          "activeCount": {
+            "format": "int32",
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ]
+          },
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "preview": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "purchasedCount": {
+            "format": "int32",
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ]
+          },
+          "role": {
+            "type": "string"
+          },
+          "version": {
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "role",
+          "version",
+          "preview",
+          "activeCount",
+          "purchasedCount"
+        ],
+        "type": "object"
+      },
+      "ShoppingMemberResponse": {
+        "properties": {
+          "displayName": {
+            "type": "string"
+          },
+          "role": {
+            "type": "string"
+          },
+          "userId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "username": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "userId",
+          "username",
+          "displayName",
+          "role"
+        ],
+        "type": "object"
+      },
+      "ShoppingMutationResponse": {
+        "properties": {
+          "item": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/ShoppingItemResponse"
+              }
+            ]
+          },
+          "listId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "undoUntilUtc": {
+            "format": "date-time",
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "version": {
+            "format": "uuid",
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        },
+        "required": [
+          "listId",
+          "version",
+          "item",
+          "undoUntilUtc"
+        ],
+        "type": "object"
+      },
+      "ShoppingPendingInvitation": {
+        "properties": {
+          "displayName": {
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "userId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "username": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "userId",
+          "username",
+          "displayName"
+        ],
+        "type": "object"
+      },
+      "ShoppingReservationInput": {
+        "properties": {
+          "token": {
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "token"
+        ],
+        "type": "object"
+      },
+      "ShoppingReservationResponse": {
+        "properties": {
+          "expiresAtUtc": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "token": {
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "token",
+          "expiresAtUtc"
+        ],
+        "type": "object"
+      },
+      "ShoppingVersionInput": {
+        "properties": {
+          "expectedVersion": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "operationId": {
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "expectedVersion",
+          "operationId"
+        ],
+        "type": "object"
+      },
+      "TransferShoppingListInput": {
+        "properties": {
+          "expectedVersion": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "newOwnerUserId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "operationId": {
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "newOwnerUserId",
+          "expectedVersion",
+          "operationId"
         ],
         "type": "object"
       },
@@ -1145,7 +1693,7 @@
     }
   },
   "info": {
-    "description": "Invitation-only accounts and cookbook-scoped recipes. Quantities are strings. Development-only description.",
+    "description": "Invitation-only accounts, cookbook-scoped recipes and independently shared shopping lists. Recipe quantities are strings. Development-only description.",
     "title": "Recipoke API",
     "version": "1.0.0"
   },
@@ -1172,7 +1720,7 @@
             "description": "Active account authentication required"
           },
           "403": {
-            "description": "Insufficient account or cookbook permissions"
+            "description": "Insufficient account or resource permissions"
           },
           "503": {
             "description": "Administrator setup or required provider configuration is missing"
@@ -1224,7 +1772,7 @@
             "description": "Active account authentication required"
           },
           "403": {
-            "description": "Insufficient account or cookbook permissions"
+            "description": "Insufficient account or resource permissions"
           },
           "503": {
             "description": "Administrator setup or required provider configuration is missing"
@@ -1278,7 +1826,7 @@
             "description": "Active account authentication required"
           },
           "403": {
-            "description": "Insufficient account or cookbook permissions"
+            "description": "Insufficient account or resource permissions"
           },
           "503": {
             "description": "Administrator setup or required provider configuration is missing"
@@ -1315,7 +1863,7 @@
             "description": "Active account authentication required"
           },
           "403": {
-            "description": "Insufficient account or cookbook permissions"
+            "description": "Insufficient account or resource permissions"
           },
           "503": {
             "description": "Administrator setup or required provider configuration is missing"
@@ -1351,7 +1899,7 @@
             "description": "Active account authentication required"
           },
           "403": {
-            "description": "Insufficient account or cookbook permissions"
+            "description": "Insufficient account or resource permissions"
           },
           "503": {
             "description": "Administrator setup or required provider configuration is missing"
@@ -1407,7 +1955,7 @@
             "description": "Active account authentication required"
           },
           "403": {
-            "description": "Insufficient account or cookbook permissions"
+            "description": "Insufficient account or resource permissions"
           },
           "503": {
             "description": "Administrator setup or required provider configuration is missing"
@@ -1443,7 +1991,7 @@
             "description": "Active account authentication required"
           },
           "403": {
-            "description": "Insufficient account or cookbook permissions"
+            "description": "Insufficient account or resource permissions"
           },
           "503": {
             "description": "Administrator setup or required provider configuration is missing"
@@ -1485,7 +2033,7 @@
             "description": "Active account authentication required"
           },
           "403": {
-            "description": "Insufficient account or cookbook permissions"
+            "description": "Insufficient account or resource permissions"
           },
           "503": {
             "description": "Administrator setup or required provider configuration is missing"
@@ -1531,7 +2079,7 @@
             "description": "Active account authentication required"
           },
           "403": {
-            "description": "Insufficient account or cookbook permissions"
+            "description": "Insufficient account or resource permissions"
           },
           "503": {
             "description": "Administrator setup or required provider configuration is missing"
@@ -1617,7 +2165,7 @@
             "description": "Active account authentication required"
           },
           "403": {
-            "description": "Insufficient account or cookbook permissions"
+            "description": "Insufficient account or resource permissions"
           },
           "503": {
             "description": "Administrator setup or required provider configuration is missing"
@@ -1650,7 +2198,7 @@
             "description": "Active account authentication required"
           },
           "403": {
-            "description": "Insufficient account or cookbook permissions"
+            "description": "Insufficient account or resource permissions"
           },
           "503": {
             "description": "Administrator setup or required provider configuration is missing"
@@ -1707,7 +2255,7 @@
             "description": "Active account authentication required"
           },
           "403": {
-            "description": "Insufficient account or cookbook permissions"
+            "description": "Insufficient account or resource permissions"
           },
           "503": {
             "description": "Administrator setup or required provider configuration is missing"
@@ -1743,7 +2291,7 @@
             "description": "Active account authentication required"
           },
           "403": {
-            "description": "Insufficient account or cookbook permissions"
+            "description": "Insufficient account or resource permissions"
           },
           "503": {
             "description": "Administrator setup or required provider configuration is missing"
@@ -1802,7 +2350,7 @@
             "description": "Active account authentication required"
           },
           "403": {
-            "description": "Insufficient account or cookbook permissions"
+            "description": "Insufficient account or resource permissions"
           },
           "409": {
             "description": "concurrency_conflict: review current authorized state; no automatic overwrite"
@@ -1844,7 +2392,7 @@
             "description": "Active account authentication required"
           },
           "403": {
-            "description": "Insufficient account or cookbook permissions"
+            "description": "Insufficient account or resource permissions"
           },
           "503": {
             "description": "Administrator setup or required provider configuration is missing"
@@ -1896,7 +2444,7 @@
             "description": "Active account authentication required"
           },
           "403": {
-            "description": "Insufficient account or cookbook permissions"
+            "description": "Insufficient account or resource permissions"
           },
           "503": {
             "description": "Administrator setup or required provider configuration is missing"
@@ -1981,7 +2529,7 @@
             "description": "Active account authentication required"
           },
           "403": {
-            "description": "Insufficient account or cookbook permissions"
+            "description": "Insufficient account or resource permissions"
           },
           "404": {
             "description": "Resource missing or outside accessible cookbooks"
@@ -2055,7 +2603,7 @@
             "description": "Active account authentication required"
           },
           "403": {
-            "description": "Insufficient account or cookbook permissions"
+            "description": "Insufficient account or resource permissions"
           },
           "404": {
             "description": "Resource missing or outside accessible cookbooks"
@@ -2125,7 +2673,7 @@
             "description": "Active account authentication required"
           },
           "403": {
-            "description": "Insufficient account or cookbook permissions"
+            "description": "Insufficient account or resource permissions"
           },
           "404": {
             "description": "Not Found"
@@ -2185,7 +2733,7 @@
             "description": "Active account authentication required"
           },
           "403": {
-            "description": "Insufficient account or cookbook permissions"
+            "description": "Insufficient account or resource permissions"
           },
           "404": {
             "description": "Not Found"
@@ -2268,7 +2816,7 @@
             "description": "Active account authentication required"
           },
           "403": {
-            "description": "Insufficient account or cookbook permissions"
+            "description": "Insufficient account or resource permissions"
           },
           "404": {
             "description": "Not Found"
@@ -2351,7 +2899,7 @@
             "description": "Active account authentication required"
           },
           "403": {
-            "description": "Insufficient account or cookbook permissions"
+            "description": "Insufficient account or resource permissions"
           },
           "404": {
             "description": "Not Found"
@@ -2404,7 +2952,7 @@
             "description": "Active account authentication required"
           },
           "403": {
-            "description": "Insufficient account or cookbook permissions"
+            "description": "Insufficient account or resource permissions"
           },
           "404": {
             "description": "Not Found"
@@ -2489,7 +3037,7 @@
             "description": "Active account authentication required"
           },
           "403": {
-            "description": "Insufficient account or cookbook permissions"
+            "description": "Insufficient account or resource permissions"
           },
           "404": {
             "description": "Not Found"
@@ -2576,7 +3124,7 @@
             "description": "Active account authentication required"
           },
           "403": {
-            "description": "Insufficient account or cookbook permissions"
+            "description": "Insufficient account or resource permissions"
           },
           "404": {
             "description": "Resource missing or outside accessible cookbooks"
@@ -2627,7 +3175,7 @@
             "description": "Active account authentication required"
           },
           "403": {
-            "description": "Insufficient account or cookbook permissions"
+            "description": "Insufficient account or resource permissions"
           },
           "404": {
             "description": "Resource missing or outside accessible cookbooks"
@@ -2694,7 +3242,7 @@
             "description": "Active account authentication required"
           },
           "403": {
-            "description": "Insufficient account or cookbook permissions"
+            "description": "Insufficient account or resource permissions"
           },
           "404": {
             "description": "Resource missing or outside accessible cookbooks"
@@ -2768,7 +3316,7 @@
             "description": "Active account authentication required"
           },
           "403": {
-            "description": "Insufficient account or cookbook permissions"
+            "description": "Insufficient account or resource permissions"
           },
           "404": {
             "description": "Resource missing or outside accessible cookbooks"
@@ -2812,7 +3360,7 @@
             "description": "Active account authentication required"
           },
           "403": {
-            "description": "Insufficient account or cookbook permissions"
+            "description": "Insufficient account or resource permissions"
           },
           "404": {
             "description": "Resource missing or outside accessible cookbooks"
@@ -2888,7 +3436,7 @@
             "description": "Active account authentication required"
           },
           "403": {
-            "description": "Insufficient account or cookbook permissions"
+            "description": "Insufficient account or resource permissions"
           },
           "404": {
             "description": "Resource missing or outside accessible cookbooks"
@@ -2971,7 +3519,7 @@
             "description": "Active account authentication required"
           },
           "403": {
-            "description": "Insufficient account or cookbook permissions"
+            "description": "Insufficient account or resource permissions"
           },
           "404": {
             "description": "Resource missing or outside accessible cookbooks"
@@ -3045,7 +3593,7 @@
             "description": "Active account authentication required"
           },
           "403": {
-            "description": "Insufficient account or cookbook permissions"
+            "description": "Insufficient account or resource permissions"
           },
           "404": {
             "description": "Resource missing or outside accessible cookbooks"
@@ -3098,7 +3646,7 @@
             "description": "Active account authentication required"
           },
           "403": {
-            "description": "Insufficient account or cookbook permissions"
+            "description": "Insufficient account or resource permissions"
           },
           "404": {
             "description": "Resource missing or outside accessible cookbooks"
@@ -3165,7 +3713,7 @@
             "description": "Active account authentication required"
           },
           "403": {
-            "description": "Insufficient account or cookbook permissions"
+            "description": "Insufficient account or resource permissions"
           },
           "404": {
             "description": "Resource missing or outside accessible cookbooks"
@@ -3251,7 +3799,7 @@
             "description": "Active account authentication required"
           },
           "403": {
-            "description": "Insufficient account or cookbook permissions"
+            "description": "Insufficient account or resource permissions"
           },
           "404": {
             "description": "Resource missing or outside accessible cookbooks"
@@ -3333,7 +3881,7 @@
             "description": "Active account authentication required"
           },
           "403": {
-            "description": "Insufficient account or cookbook permissions"
+            "description": "Insufficient account or resource permissions"
           },
           "404": {
             "description": "Resource missing or outside accessible cookbooks"
@@ -3502,7 +4050,7 @@
             "description": "Active account authentication required"
           },
           "403": {
-            "description": "Insufficient account or cookbook permissions"
+            "description": "Insufficient account or resource permissions"
           },
           "422": {
             "content": {
@@ -3565,6 +4113,1396 @@
         ]
       }
     },
+    "/api/shopping-list-invitations": {
+      "get": {
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/ShoppingInvitationResponse"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "401": {
+            "description": "Active account authentication required"
+          },
+          "403": {
+            "description": "Insufficient account or resource permissions"
+          },
+          "503": {
+            "description": "Administrator setup or required provider configuration is missing"
+          }
+        },
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "tags": [
+          "Recipoke.Api"
+        ]
+      }
+    },
+    "/api/shopping-lists": {
+      "get": {
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/ShoppingListSummary"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "401": {
+            "description": "Active account authentication required"
+          },
+          "403": {
+            "description": "Insufficient account or resource permissions"
+          },
+          "404": {
+            "description": "Resource missing or outside current shopping-list membership"
+          },
+          "503": {
+            "description": "Administrator setup or required provider configuration is missing"
+          }
+        },
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "tags": [
+          "Recipoke.Api"
+        ]
+      },
+      "post": {
+        "parameters": [
+          {
+            "description": "Existing browser write protection; value must be 1.",
+            "in": "header",
+            "name": "X-RecipeAtlas",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateShoppingListInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ShoppingMutationResponse"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "401": {
+            "description": "Active account authentication required"
+          },
+          "403": {
+            "description": "Insufficient account or resource permissions"
+          },
+          "404": {
+            "description": "Resource missing or outside current shopping-list membership"
+          },
+          "409": {
+            "description": "shopping_item_reserved, shopping_reservation_lost, shopping_undo_expired, operation_id_reused, or a stale body version; inspect code"
+          },
+          "503": {
+            "description": "Administrator setup or required provider configuration is missing"
+          }
+        },
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "tags": [
+          "Recipoke.Api"
+        ]
+      }
+    },
+    "/api/shopping-lists/{listId}": {
+      "delete": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "listId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Existing browser write protection; value must be 1.",
+            "in": "header",
+            "name": "X-RecipeAtlas",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "One quoted strong version UUID; wildcards, weak tags and lists are rejected.",
+            "in": "header",
+            "name": "If-Match",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "UUID for this logical action. Retry the identical payload with the same ID.",
+            "in": "header",
+            "name": "X-Operation-Id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "400": {
+            "description": "Malformed version or invalid command"
+          },
+          "401": {
+            "description": "Active account authentication required"
+          },
+          "403": {
+            "description": "Insufficient account or resource permissions"
+          },
+          "404": {
+            "description": "Resource missing or outside current shopping-list membership"
+          },
+          "409": {
+            "description": "shopping_item_reserved, shopping_reservation_lost, shopping_undo_expired, operation_id_reused, or a stale body version; inspect code"
+          },
+          "412": {
+            "description": "concurrency_conflict: retain local work and review the current state"
+          },
+          "428": {
+            "description": "concurrency_precondition_required: supply the reviewed version"
+          },
+          "503": {
+            "description": "Administrator setup or required provider configuration is missing"
+          }
+        },
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "tags": [
+          "Recipoke.Api"
+        ]
+      },
+      "get": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "listId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ShoppingListResponse"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "401": {
+            "description": "Active account authentication required"
+          },
+          "403": {
+            "description": "Insufficient account or resource permissions"
+          },
+          "404": {
+            "description": "Resource missing or outside current shopping-list membership"
+          },
+          "503": {
+            "description": "Administrator setup or required provider configuration is missing"
+          }
+        },
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "tags": [
+          "Recipoke.Api"
+        ]
+      },
+      "put": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "listId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Existing browser write protection; value must be 1.",
+            "in": "header",
+            "name": "X-RecipeAtlas",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RenameShoppingListInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ShoppingMutationResponse"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "400": {
+            "description": "Malformed version or invalid command"
+          },
+          "401": {
+            "description": "Active account authentication required"
+          },
+          "403": {
+            "description": "Insufficient account or resource permissions"
+          },
+          "404": {
+            "description": "Resource missing or outside current shopping-list membership"
+          },
+          "409": {
+            "description": "concurrency_conflict: retain local work and review the current state"
+          },
+          "428": {
+            "description": "concurrency_precondition_required: supply the reviewed version"
+          },
+          "503": {
+            "description": "Administrator setup or required provider configuration is missing"
+          }
+        },
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "tags": [
+          "Recipoke.Api"
+        ]
+      }
+    },
+    "/api/shopping-lists/{listId}/invitations": {
+      "post": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "listId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Existing browser write protection; value must be 1.",
+            "in": "header",
+            "name": "X-RecipeAtlas",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/InviteShoppingMemberInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ShoppingMutationResponse"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "400": {
+            "description": "Malformed version or invalid command"
+          },
+          "401": {
+            "description": "Active account authentication required"
+          },
+          "403": {
+            "description": "Insufficient account or resource permissions"
+          },
+          "404": {
+            "description": "Resource missing or outside current shopping-list membership"
+          },
+          "409": {
+            "description": "concurrency_conflict: retain local work and review the current state"
+          },
+          "428": {
+            "description": "concurrency_precondition_required: supply the reviewed version"
+          },
+          "503": {
+            "description": "Administrator setup or required provider configuration is missing"
+          }
+        },
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "tags": [
+          "Recipoke.Api"
+        ]
+      }
+    },
+    "/api/shopping-lists/{listId}/invitations/{id}": {
+      "delete": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "listId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Existing browser write protection; value must be 1.",
+            "in": "header",
+            "name": "X-RecipeAtlas",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "One quoted strong version UUID; wildcards, weak tags and lists are rejected.",
+            "in": "header",
+            "name": "If-Match",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "UUID for this logical action. Retry the identical payload with the same ID.",
+            "in": "header",
+            "name": "X-Operation-Id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ShoppingMutationResponse"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "400": {
+            "description": "Malformed version or invalid command"
+          },
+          "401": {
+            "description": "Active account authentication required"
+          },
+          "403": {
+            "description": "Insufficient account or resource permissions"
+          },
+          "404": {
+            "description": "Resource missing or outside current shopping-list membership"
+          },
+          "409": {
+            "description": "shopping_item_reserved, shopping_reservation_lost, shopping_undo_expired, operation_id_reused, or a stale body version; inspect code"
+          },
+          "412": {
+            "description": "concurrency_conflict: retain local work and review the current state"
+          },
+          "428": {
+            "description": "concurrency_precondition_required: supply the reviewed version"
+          },
+          "503": {
+            "description": "Administrator setup or required provider configuration is missing"
+          }
+        },
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "tags": [
+          "Recipoke.Api"
+        ]
+      }
+    },
+    "/api/shopping-lists/{listId}/invitations/{id}/respond": {
+      "post": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "listId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Existing browser write protection; value must be 1.",
+            "in": "header",
+            "name": "X-RecipeAtlas",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RespondShoppingInvitationInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ShoppingMutationResponse"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "400": {
+            "description": "Malformed version or invalid command"
+          },
+          "401": {
+            "description": "Active account authentication required"
+          },
+          "403": {
+            "description": "Insufficient account or resource permissions"
+          },
+          "404": {
+            "description": "Resource missing or outside current shopping-list membership"
+          },
+          "409": {
+            "description": "concurrency_conflict: retain local work and review the current state"
+          },
+          "428": {
+            "description": "concurrency_precondition_required: supply the reviewed version"
+          },
+          "503": {
+            "description": "Administrator setup or required provider configuration is missing"
+          }
+        },
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "tags": [
+          "Recipoke.Api"
+        ]
+      }
+    },
+    "/api/shopping-lists/{listId}/items": {
+      "post": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "listId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Existing browser write protection; value must be 1.",
+            "in": "header",
+            "name": "X-RecipeAtlas",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AddShoppingItemInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ShoppingMutationResponse"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "401": {
+            "description": "Active account authentication required"
+          },
+          "403": {
+            "description": "Insufficient account or resource permissions"
+          },
+          "404": {
+            "description": "Resource missing or outside current shopping-list membership"
+          },
+          "409": {
+            "description": "shopping_item_reserved, shopping_reservation_lost, shopping_undo_expired, operation_id_reused, or a stale body version; inspect code"
+          },
+          "503": {
+            "description": "Administrator setup or required provider configuration is missing"
+          }
+        },
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "tags": [
+          "Recipoke.Api"
+        ]
+      }
+    },
+    "/api/shopping-lists/{listId}/items/{id}": {
+      "delete": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "listId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Existing browser write protection; value must be 1.",
+            "in": "header",
+            "name": "X-RecipeAtlas",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "One quoted strong version UUID; wildcards, weak tags and lists are rejected.",
+            "in": "header",
+            "name": "If-Match",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "UUID for this logical action. Retry the identical payload with the same ID.",
+            "in": "header",
+            "name": "X-Operation-Id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ShoppingMutationResponse"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "400": {
+            "description": "Malformed version or invalid command"
+          },
+          "401": {
+            "description": "Active account authentication required"
+          },
+          "403": {
+            "description": "Insufficient account or resource permissions"
+          },
+          "404": {
+            "description": "Resource missing or outside current shopping-list membership"
+          },
+          "409": {
+            "description": "shopping_item_reserved, shopping_reservation_lost, shopping_undo_expired, operation_id_reused, or a stale body version; inspect code"
+          },
+          "412": {
+            "description": "concurrency_conflict: retain local work and review the current state"
+          },
+          "428": {
+            "description": "concurrency_precondition_required: supply the reviewed version"
+          },
+          "503": {
+            "description": "Administrator setup or required provider configuration is missing"
+          }
+        },
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "tags": [
+          "Recipoke.Api"
+        ]
+      },
+      "put": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "listId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Existing browser write protection; value must be 1.",
+            "in": "header",
+            "name": "X-RecipeAtlas",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SaveShoppingItemInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ShoppingMutationResponse"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "400": {
+            "description": "Malformed version or invalid command"
+          },
+          "401": {
+            "description": "Active account authentication required"
+          },
+          "403": {
+            "description": "Insufficient account or resource permissions"
+          },
+          "404": {
+            "description": "Resource missing or outside current shopping-list membership"
+          },
+          "409": {
+            "description": "concurrency_conflict: retain local work and review the current state"
+          },
+          "428": {
+            "description": "concurrency_precondition_required: supply the reviewed version"
+          },
+          "503": {
+            "description": "Administrator setup or required provider configuration is missing"
+          }
+        },
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "tags": [
+          "Recipoke.Api"
+        ]
+      }
+    },
+    "/api/shopping-lists/{listId}/items/{id}/purchased": {
+      "put": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "listId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Existing browser write protection; value must be 1.",
+            "in": "header",
+            "name": "X-RecipeAtlas",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PurchasedShoppingItemInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ShoppingMutationResponse"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "400": {
+            "description": "Malformed version or invalid command"
+          },
+          "401": {
+            "description": "Active account authentication required"
+          },
+          "403": {
+            "description": "Insufficient account or resource permissions"
+          },
+          "404": {
+            "description": "Resource missing or outside current shopping-list membership"
+          },
+          "409": {
+            "description": "concurrency_conflict: retain local work and review the current state"
+          },
+          "428": {
+            "description": "concurrency_precondition_required: supply the reviewed version"
+          },
+          "503": {
+            "description": "Administrator setup or required provider configuration is missing"
+          }
+        },
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "tags": [
+          "Recipoke.Api"
+        ]
+      }
+    },
+    "/api/shopping-lists/{listId}/items/{id}/reservation": {
+      "delete": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "listId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Existing browser write protection; value must be 1.",
+            "in": "header",
+            "name": "X-RecipeAtlas",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ShoppingReservationInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "401": {
+            "description": "Active account authentication required"
+          },
+          "403": {
+            "description": "Insufficient account or resource permissions"
+          },
+          "404": {
+            "description": "Resource missing or outside current shopping-list membership"
+          },
+          "409": {
+            "description": "shopping_item_reserved, shopping_reservation_lost, shopping_undo_expired, operation_id_reused, or a stale body version; inspect code"
+          },
+          "503": {
+            "description": "Administrator setup or required provider configuration is missing"
+          }
+        },
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "tags": [
+          "Recipoke.Api"
+        ]
+      },
+      "post": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "listId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Existing browser write protection; value must be 1.",
+            "in": "header",
+            "name": "X-RecipeAtlas",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AcquireShoppingReservationInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ShoppingReservationResponse"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "400": {
+            "description": "Malformed version or invalid command"
+          },
+          "401": {
+            "description": "Active account authentication required"
+          },
+          "403": {
+            "description": "Insufficient account or resource permissions"
+          },
+          "404": {
+            "description": "Resource missing or outside current shopping-list membership"
+          },
+          "409": {
+            "description": "concurrency_conflict: retain local work and review the current state"
+          },
+          "428": {
+            "description": "concurrency_precondition_required: supply the reviewed version"
+          },
+          "503": {
+            "description": "Administrator setup or required provider configuration is missing"
+          }
+        },
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "tags": [
+          "Recipoke.Api"
+        ]
+      }
+    },
+    "/api/shopping-lists/{listId}/items/{id}/restore": {
+      "post": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "listId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Existing browser write protection; value must be 1.",
+            "in": "header",
+            "name": "X-RecipeAtlas",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RestoreShoppingItemInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ShoppingMutationResponse"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "401": {
+            "description": "Active account authentication required"
+          },
+          "403": {
+            "description": "Insufficient account or resource permissions"
+          },
+          "404": {
+            "description": "Resource missing or outside current shopping-list membership"
+          },
+          "409": {
+            "description": "shopping_item_reserved, shopping_reservation_lost, shopping_undo_expired, operation_id_reused, or a stale body version; inspect code"
+          },
+          "503": {
+            "description": "Administrator setup or required provider configuration is missing"
+          }
+        },
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "tags": [
+          "Recipoke.Api"
+        ]
+      }
+    },
+    "/api/shopping-lists/{listId}/leave": {
+      "post": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "listId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Existing browser write protection; value must be 1.",
+            "in": "header",
+            "name": "X-RecipeAtlas",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ShoppingVersionInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ShoppingMutationResponse"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "400": {
+            "description": "Malformed version or invalid command"
+          },
+          "401": {
+            "description": "Active account authentication required"
+          },
+          "403": {
+            "description": "Insufficient account or resource permissions"
+          },
+          "404": {
+            "description": "Resource missing or outside current shopping-list membership"
+          },
+          "409": {
+            "description": "concurrency_conflict: retain local work and review the current state"
+          },
+          "428": {
+            "description": "concurrency_precondition_required: supply the reviewed version"
+          },
+          "503": {
+            "description": "Administrator setup or required provider configuration is missing"
+          }
+        },
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "tags": [
+          "Recipoke.Api"
+        ]
+      }
+    },
+    "/api/shopping-lists/{listId}/members/{userId}": {
+      "delete": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "listId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "userId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Existing browser write protection; value must be 1.",
+            "in": "header",
+            "name": "X-RecipeAtlas",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "One quoted strong version UUID; wildcards, weak tags and lists are rejected.",
+            "in": "header",
+            "name": "If-Match",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "UUID for this logical action. Retry the identical payload with the same ID.",
+            "in": "header",
+            "name": "X-Operation-Id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ShoppingMutationResponse"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "400": {
+            "description": "Malformed version or invalid command"
+          },
+          "401": {
+            "description": "Active account authentication required"
+          },
+          "403": {
+            "description": "Insufficient account or resource permissions"
+          },
+          "404": {
+            "description": "Resource missing or outside current shopping-list membership"
+          },
+          "409": {
+            "description": "shopping_item_reserved, shopping_reservation_lost, shopping_undo_expired, operation_id_reused, or a stale body version; inspect code"
+          },
+          "412": {
+            "description": "concurrency_conflict: retain local work and review the current state"
+          },
+          "428": {
+            "description": "concurrency_precondition_required: supply the reviewed version"
+          },
+          "503": {
+            "description": "Administrator setup or required provider configuration is missing"
+          }
+        },
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "tags": [
+          "Recipoke.Api"
+        ]
+      }
+    },
+    "/api/shopping-lists/{listId}/transfer": {
+      "post": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "listId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Existing browser write protection; value must be 1.",
+            "in": "header",
+            "name": "X-RecipeAtlas",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TransferShoppingListInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ShoppingMutationResponse"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "400": {
+            "description": "Malformed version or invalid command"
+          },
+          "401": {
+            "description": "Active account authentication required"
+          },
+          "403": {
+            "description": "Insufficient account or resource permissions"
+          },
+          "404": {
+            "description": "Resource missing or outside current shopping-list membership"
+          },
+          "409": {
+            "description": "concurrency_conflict: retain local work and review the current state"
+          },
+          "428": {
+            "description": "concurrency_precondition_required: supply the reviewed version"
+          },
+          "503": {
+            "description": "Administrator setup or required provider configuration is missing"
+          }
+        },
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "tags": [
+          "Recipoke.Api"
+        ]
+      }
+    },
     "/api/units": {
       "get": {
         "responses": {
@@ -3585,7 +5523,7 @@
             "description": "Active account authentication required"
           },
           "403": {
-            "description": "Insufficient account or cookbook permissions"
+            "description": "Insufficient account or resource permissions"
           },
           "503": {
             "description": "Administrator setup or required provider configuration is missing"
